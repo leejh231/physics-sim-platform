@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AR 코팅 1D FDTD — physics-sim-platform</title>
+<style>
+  :root{--bg:#fff;--bg2:#f5f5f3;--bd:rgba(0,0,0,0.12);--tx:#1a1a1a;--tx2:#666;--ib:#E6F1FB;--ic:#185FA5;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--bd:rgba(255,255,255,0.12);--tx:#e8e8e8;--tx2:#999;--ib:#0c2a40;--ic:#5aabf0;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);}
+  nav{background:var(--bg2);border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+  nav a{font-size:13px;color:var(--tx2);text-decoration:none;}nav a:hover{color:var(--tx);}
+  .sep{color:var(--bd);}.cur{color:var(--tx);font-weight:500;}
+  .container{max-width:860px;margin:0 auto;padding:24px 16px;}
+  h1{font-size:22px;font-weight:500;margin-bottom:4px;}.subtitle{font-size:14px;color:var(--tx2);margin-bottom:24px;}
+  .p{background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+  .lbl{font-size:11px;color:var(--tx2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .row label{font-size:13px;color:var(--tx2);width:110px;flex-shrink:0;}
+  .row input[type=range]{flex:1;accent-color:#534AB7;}
+  .val{font-size:13px;font-weight:500;min-width:60px;text-align:right;}
+  canvas{width:100%;display:block;}
+  .mr{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+  .mc{background:var(--bg2);border-radius:8px;padding:8px 10px;}
+  .ml{font-size:11px;color:var(--tx2);}.mv{font-size:14px;font-weight:500;margin-top:2px;}
+  .note{font-size:12px;color:var(--tx2);padding:8px 12px;background:var(--bg2);border-radius:8px;line-height:1.6;margin-top:8px;}
+  .eq{font-family:monospace;font-size:13px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;line-height:1.7;margin-bottom:4px;}
+  .th{background:var(--bg2);border-radius:12px;border:1px solid var(--bd);padding:14px;margin-bottom:10px;display:none;}
+  .th.show{display:block;}
+  .thbtn{font-size:12px;padding:4px 12px;border-radius:8px;border:1px solid var(--ic);background:transparent;color:var(--ic);cursor:pointer;}
+  .thbtn.open{background:var(--ib);}
+  .rbtn{font-size:13px;padding:8px 20px;border-radius:8px;border:1px solid var(--bd);background:var(--bg2);color:var(--tx);cursor:pointer;font-family:inherit;font-weight:500;}
+  .rbtn.run{border-color:var(--ic);color:var(--ic);}
+  .pb{height:4px;background:var(--bg2);border-radius:2px;overflow:hidden;margin-top:6px;}
+  .pf{height:100%;background:#378ADD;width:0%;}
+</style>
+</head>
+<body>
+<nav>
+  <a href="../../index.html">physics-sim-platform</a><span class="sep">/</span>
+  <a href="../index.html">em_optics</a><span class="sep">/</span>
+  <span class="cur">01 AR 코팅</span>
+</nav>
+<div class="container">
+  <h1>AR 코팅 — 1D FDTD 시뮬레이터</h1>
+  <p class="subtitle">1/4파장 반사 방지 코팅 · Yee 알고리즘 · PML 경계 · Fresnel 반사율 분석</p>
+
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+    <button class="thbtn" id="thBtn" onclick="toggleTh()">이론 보기</button>
+    <span style="font-size:12px;color:var(--tx2);margin-left:4px;">AR_Coating.py → JavaScript 포팅</span>
+  </div>
+  <div id="thPanel" class="th">
+    <div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:500;color:var(--tx2);text-transform:uppercase;margin-bottom:6px;">AR 코팅 조건</div>
+      <div class="eq">최적 굴절률: n_AR = √(n₁·n₃)  →  공기-Si: √(1×5.5) ≈ 2.35</div>
+      <div class="eq">최적 두께: d_AR = λ/(4·n_AR)  →  반사파가 180° 위상 역전되어 상쇄 간섭</div>
+      <div class="eq">반사율 (Fresnel): R = |(n₁−n₃)/(n₁+n₃)|²  →  AR 없는 공기-Si: R ≈ 46%</div>
+    </div>
+    <div><div style="font-size:11px;font-weight:500;color:var(--tx2);text-transform:uppercase;margin-bottom:6px;">1D FDTD Yee 알고리즘</div>
+      <div class="eq">Hy[n+½] = A1·Hy[n-½] − B1·(Ex[k+1]−Ex[k]) / Δz</div>
+      <div class="eq">Ex[n+1] = A2·Ex[n]   − B2·(Hy[k]−Hy[k-1]) / Δz</div>
+      <div class="eq">A1=(μ−σ*Δt/2)/(μ+σ*Δt/2),  B1=Δt/Δz/(μ+σ*Δt/2)  |  PML: σ 프로파일</div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="p"><div class="lbl">매질 파라미터</div>
+      <div class="row"><label>n₁ (공기)</label><input type="range" min="1" max="1" value="1" step="0.1" id="n1" oninput="up()"><span class="val" id="n1v">1.00</span></div>
+      <div class="row"><label>n₂ (AR 코팅)</label><input type="range" min="1.2" max="4" value="2.35" step="0.05" id="n2" oninput="up()"><span class="val" id="n2v">2.35</span></div>
+      <div class="row"><label>n₃ (기판)</label><input type="range" min="2" max="8" value="5.5" step="0.1" id="n3" oninput="up()"><span class="val" id="n3v">5.50</span></div>
+    </div>
+    <div class="p"><div class="lbl">광학 파라미터</div>
+      <div class="row"><label>파장 λ (nm)</label><input type="range" min="400" max="1550" value="1000" step="10" id="wl" oninput="up()"><span class="val" id="wlv">1000 nm</span></div>
+      <div class="row"><label>AR 두께 배율</label><input type="range" min="0.25" max="2.0" value="1.0" step="0.05" id="dsc" oninput="up()"><span class="val" id="dscv">×1.00</span></div>
+    </div>
+    <div class="p"><div class="lbl">시뮬레이션</div>
+      <div class="row"><label>시간 스텝</label><input type="range" min="500" max="3000" value="1500" step="100" id="ns" oninput="up()"><span class="val" id="nsv">1500</span></div>
+      <button class="rbtn" id="runBtn" onclick="toggleRun()" style="margin-top:8px;">▶ 시뮬레이션 실행</button>
+      <div class="pb"><div class="pf" id="pf"></div></div>
+      <div id="st" style="font-size:12px;color:var(--tx2);margin-top:4px;">준비</div>
+    </div>
+  </div>
+
+  <div class="p"><div class="lbl">이론 반사율 R vs n₂ (실시간)</div>
+    <div class="g2">
+      <div style="position:relative;height:130px;"><canvas id="cfr"></canvas></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start;">
+        <div class="mc"><div class="ml">최적 n_AR = √(n₁·n₃)</div><div class="mv" id="nopt">—</div></div>
+        <div class="mc"><div class="ml">현재 n₂</div><div class="mv" id="ncur">—</div></div>
+        <div class="mc"><div class="ml">코팅 없을 때 R</div><div class="mv" id="rbare">—</div></div>
+        <div class="mc"><div class="ml">AR 코팅 후 R</div><div class="mv" id="rar">—</div></div>
+        <div class="mc"><div class="ml">AR 두께 d_AR</div><div class="mv" id="dar">—</div></div>
+        <div class="mc"><div class="ml">도메인 셀 수</div><div class="mv" id="dom">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="p"><div class="lbl">Ex 전기장 — 1D FDTD</div>
+    <div style="position:relative;height:160px;"><canvas id="cex"></canvas></div>
+    <div id="step-info" style="font-size:11px;color:var(--tx2);margin-top:4px;">시뮬레이션을 실행하세요</div>
+  </div>
+
+  <div class="p"><div class="lbl">Poynting Vector (Ex × Hy)</div>
+    <div style="position:relative;height:130px;"><canvas id="cpow"></canvas></div>
+    <div class="note">포인팅 벡터는 단위 면적당 전력 흐름. AR 코팅 최적화 시 기판으로 흐르는 파워가 극대화됩니다.</div>
+  </div>
+
+  <div class="p"><div class="lbl">파장별 반사율 / 투과율 스펙트럼</div>
+    <div style="position:relative;height:160px;"><canvas id="cspec"></canvas></div>
+    <div class="note">현재 AR 두께 d = λ_design/(4·n₂)에서 파장에 따른 반사율(빨간)/투과율(초록). 설계 파장에서 반사율이 최소화됩니다.</div>
+  </div>
+
+  <div class="mr">
+    <div class="mc"><div class="ml">FDTD 반사율</div><div class="mv" id="fr">—</div></div>
+    <div class="mc"><div class="ml">FDTD 투과율</div><div class="mv" id="ft">—</div></div>
+    <div class="mc"><div class="ml">진행률</div><div class="mv" id="prog">—</div></div>
+    <div class="mc"><div class="ml">Δt</div><div class="mv" id="dtv">—</div></div>
+  </div>
+</div>
+<script>
+const c0=3e8,eps0=8.854e-12,mu0=4*Math.PI*1e-7;
+const dz=10e-9,CFL=1.0,dt=CFL*dz/c0,NPML=20,mPML=3,rfac=1e-6;
+let running=false,raf=null,thOpen=false;
+let p={n1:1,n2:2.35,n3:5.5,wl:1000e-9,dsc:1.0,ns:1500};
+
+const isDk=()=>window.matchMedia('(prefers-color-scheme:dark)').matches;
+const BC=()=>isDk()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';
+const SC=()=>isDk()?'#888':'#666';
+function getCtx(id,h){const el=document.getElementById(id);if(!el)return null;const dpr=window.devicePixelRatio||1;const W=el.parentElement.getBoundingClientRect().width||500;el.width=W*dpr;el.height=h*dpr;const ctx=el.getContext('2d');ctx.scale(dpr,dpr);return{ctx,W,H:h};}
+
+function toggleTh(){thOpen=!thOpen;document.getElementById('thPanel').className='th'+(thOpen?' show':'');const b=document.getElementById('thBtn');b.textContent=thOpen?'이론 닫기':'이론 보기';b.className='thbtn'+(thOpen?' open':'');}
+
+function up(){
+  p.n1=+document.getElementById('n1').value;p.n2=+document.getElementById('n2').value;p.n3=+document.getElementById('n3').value;
+  p.wl=+document.getElementById('wl').value*1e-9;p.dsc=+document.getElementById('dsc').value;p.ns=+document.getElementById('ns').value;
+  document.getElementById('n1v').textContent=p.n1.toFixed(2);document.getElementById('n2v').textContent=p.n2.toFixed(2);document.getElementById('n3v').textContent=p.n3.toFixed(2);
+  document.getElementById('wlv').textContent=(p.wl*1e9).toFixed(0)+' nm';document.getElementById('dscv').textContent='×'+p.dsc.toFixed(2);document.getElementById('nsv').textContent=p.ns;
+  const nopt=Math.sqrt(p.n1*p.n3);
+  const dar_cells=Math.round((p.wl/(4*p.n2))/dz*p.dsc);
+  const zdim=300+dar_cells+200+2*NPML;
+  const rbare=Math.pow((p.n1-p.n3)/(p.n1+p.n3),2);
+  const r12=(p.n1-p.n2)/(p.n1+p.n2),r23=(p.n2-p.n3)/(p.n2+p.n3);
+  const phi=Math.PI/2*p.dsc;
+  const rN=r12*r12+r23*r23+2*r12*r23*Math.cos(2*phi);
+  const rD=1+r12*r12*r23*r23+2*r12*r23*Math.cos(2*phi);
+  const Rar=Math.max(0,rN/rD);
+  document.getElementById('nopt').textContent=nopt.toFixed(3);
+  document.getElementById('ncur').textContent=p.n2.toFixed(3)+(Math.abs(p.n2-nopt)<0.1?' ✓':'');
+  document.getElementById('rbare').textContent=(rbare*100).toFixed(1)+'%';
+  document.getElementById('rar').textContent=(Rar*100).toFixed(2)+'%';
+  document.getElementById('dar').textContent=(dar_cells*dz*1e9).toFixed(1)+' nm ('+dar_cells+'셀)';
+  document.getElementById('dom').textContent=zdim+' 셀';
+  document.getElementById('dtv').textContent=dt.toExponential(2)+'s';
+  drawFresnel();drawSpectrum();
+}
+
+function drawFresnel(){
+  const r=getCtx('cfr',130);if(!r)return;
+  const{ctx,W,H}=r;ctx.clearRect(0,0,W,H);
+  const nR=Array.from({length:100},(_,i)=>1+i*7/99);
+  ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-20);ctx.lineTo(W,H-20);ctx.stroke();
+  const maxR=Math.pow((p.n1-p.n3)/(p.n1+p.n3),2)*1.1;
+  ctx.strokeStyle='#378ADD';ctx.lineWidth=2;ctx.beginPath();
+  nR.forEach((n,i)=>{const r12=(p.n1-n)/(p.n1+n),r23=(n-p.n3)/(n+p.n3),phi=Math.PI/2*p.dsc;const rN=r12*r12+r23*r23+2*r12*r23*Math.cos(2*phi),rD=1+r12*r12*r23*r23+2*r12*r23*Math.cos(2*phi);const R=Math.max(0,rN/rD);const x=i/99*W,y=H-20-R/maxR*(H-25);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();
+  const r12=(p.n1-p.n2)/(p.n1+p.n2),r23=(p.n2-p.n3)/(p.n2+p.n3),phi=Math.PI/2*p.dsc;
+  const rN=r12*r12+r23*r23+2*r12*r23*Math.cos(2*phi),rD=1+r12*r12*r23*r23+2*r12*r23*Math.cos(2*phi);
+  const R=Math.max(0,rN/rD);
+  const cx=(p.n2-1)/7*W,cy=H-20-R/maxR*(H-25);
+  ctx.fillStyle='#D85A30';ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fill();
+  const nopt=Math.sqrt(p.n1*p.n3);const cx2=(nopt-1)/7*W;
+  ctx.strokeStyle='#1D9E75';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(cx2,0);ctx.lineTo(cx2,H-20);ctx.stroke();ctx.setLineDash([]);
+  ctx.font='10px sans-serif';ctx.fillStyle='#1D9E75';ctx.fillText('최적 n='+nopt.toFixed(2),cx2+3,14);
+  ctx.fillStyle=SC();ctx.fillText('1.0',4,H-4);ctx.fillText('8.0',W-24,H-4);ctx.fillStyle='#378ADD';ctx.fillText('R vs n₂',4,14);
+}
+
+function drawSpectrum(){
+  const r=getCtx('cspec',160);if(!r)return;
+  const{ctx,W,H}=r;ctx.clearRect(0,0,W,H);
+  const d_ar=Math.round((p.wl/(4*p.n2))/dz*p.dsc)*dz;
+  const wlR=Array.from({length:200},(_,i)=>400e-9+i*800e-9/199);
+  ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-20);ctx.lineTo(W,H-20);ctx.stroke();
+  ['#D85A30','#1D9E75'].forEach((col,ci)=>{
+    ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();
+    wlR.forEach((lam,i)=>{const r12=(p.n1-p.n2)/(p.n1+p.n2),r23=(p.n2-p.n3)/(p.n2+p.n3),phi=2*Math.PI*p.n2*d_ar/lam;const rN=r12*r12+r23*r23+2*r12*r23*Math.cos(2*phi),rD=1+r12*r12*r23*r23+2*r12*r23*Math.cos(2*phi);const R=Math.max(0,rN/rD),v=ci===0?R:1-R;const x=i/199*W,y=H-20-v*(H-25);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();
+  });
+  const cx=(p.wl-400e-9)/800e-9*W;
+  ctx.strokeStyle='#534AB7';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,H-20);ctx.stroke();ctx.setLineDash([]);
+  ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText('400nm',4,H-4);ctx.fillText('1200nm',W-42,H-4);
+  ctx.fillStyle='#D85A30';ctx.fillText('R',4,14);ctx.fillStyle='#1D9E75';ctx.fillText('T',4,26);
+}
+
+function buildDom(){
+  const d_ar=Math.round((p.wl/(4*p.n2))/dz*p.dsc),d_air=300,d_si=200;
+  const zdim=d_air+d_ar+d_si+2*NPML;
+  const ar_s=NPML+d_air,ar_e=ar_s+d_ar-1,si_s=ar_e+1,si_e=si_s+d_si-1;
+  const z_src=NPML+10;
+  const eps_r=new Float64Array(zdim).fill(1);
+  const sg=new Float64Array(zdim).fill(0);
+  const mu=new Float64Array(zdim).fill(mu0);
+  for(let i=ar_s;i<=ar_e;i++)eps_r[i]=p.n2*p.n2;
+  for(let i=si_s;i<=si_e;i++)eps_r[i]=p.n3*p.n3;
+  const eps=eps_r.map(e=>e*eps0);
+  const eta=Math.sqrt(mu0/eps0);
+  const smax=(-(mPML+1)*Math.log(rfac))/(2*dz*NPML*eta);
+  for(let i=1;i<=NPML;i++){sg[NPML-i]=Math.pow(i/NPML,mPML)*smax;sg[zdim-NPML+i-1]=Math.pow(i/NPML,mPML)*smax;}
+  const sstar=sg.map((s,i)=>(s*mu[i])/eps[i]);
+  const A1=new Float64Array(zdim),B1=new Float64Array(zdim),A2=new Float64Array(zdim),B2=new Float64Array(zdim);
+  for(let i=0;i<zdim;i++){A1[i]=(mu[i]-sstar[i]*dt/2)/(mu[i]+sstar[i]*dt/2);B1[i]=(dt/dz)/(mu[i]+.5*dt*sstar[i]);A2[i]=(eps[i]-sg[i]*dt/2)/(eps[i]+sg[i]*dt/2);B2[i]=(dt/dz)/(eps[i]+.5*dt*sg[i]);}
+  return{zdim,ar_s,ar_e,si_s,si_e,z_src,A1,B1,A2,B2};
+}
+
+function toggleRun(){
+  if(running){running=false;if(raf){cancelAnimationFrame(raf);raf=null;}document.getElementById('runBtn').textContent='▶ 다시 실행';document.getElementById('runBtn').className='rbtn';return;}
+  startSim();
+}
+
+function startSim(){
+  running=true;document.getElementById('runBtn').textContent='■ 중지';document.getElementById('runBtn').className='rbtn run';
+  const dom=buildDom();const{zdim,ar_s,ar_e,si_s,si_e,z_src,A1,B1,A2,B2}=dom;
+  const Ex=new Float64Array(zdim),Hy=new Float64Array(zdim);
+  const omega=2*Math.PI*c0/p.wl,ns=p.ns;
+  let iter=0,pow_i=0,pow_r=0,pow_t=0;
+  const zr=Math.max(0,z_src-20),zt=Math.min(zdim-1,si_s+30);
+  function step(){
+    if(!running||iter>=ns){finish();return;}
+    for(let b=0;b<20&&iter<ns;b++,iter++){
+      Ex[z_src]=Math.sin(omega*iter*dt);
+      for(let i=0;i<zdim-1;i++)Hy[i]=A1[i]*Hy[i]-B1[i]*(Ex[i+1]-Ex[i]);
+      for(let i=1;i<zdim;i++)Ex[i]=A2[i]*Ex[i]-B2[i]*(Hy[i]-Hy[i-1]);
+      if(iter>ns*.5){pow_i+=Ex[z_src]*Ex[z_src];pow_r+=Ex[zr]*Ex[zr];pow_t+=Ex[zt]*Ex[zt];}
+    }
+    drawFields(Ex,Hy,dom,iter,ns);
+    document.getElementById('pf').style.width=(iter/ns*100)+'%';
+    document.getElementById('st').textContent='스텝 '+iter+'/'+ns;
+    raf=requestAnimationFrame(step);
+  }
+  function finish(){
+    running=false;document.getElementById('runBtn').textContent='▶ 다시 실행';document.getElementById('runBtn').className='rbtn';
+    document.getElementById('pf').style.width='100%';document.getElementById('st').textContent='완료';
+    const R=pow_i>0?Math.min(pow_r/pow_i,1):0,T=pow_i>0?Math.min(pow_t/pow_i,1):0;
+    document.getElementById('fr').textContent=(R*100).toFixed(1)+'%';document.getElementById('ft').textContent=(T*100).toFixed(1)+'%';document.getElementById('prog').textContent='완료 ('+ns+'스텝)';
+  }
+  raf=requestAnimationFrame(step);
+}
+
+function drawFields(Ex,Hy,dom,iter,ns){
+  const{zdim,ar_s,ar_e,si_s,si_e}=dom;
+  const zmax=zdim*dz*1e6;
+  const ar_z0=(ar_s+1)*dz*1e6,ar_z1=(ar_e+1)*dz*1e6,si_z0=(si_s+1)*dz*1e6,si_z1=(si_e+1)*dz*1e6;
+  function drawF(id,sig,h,col){
+    const r=getCtx(id,h);if(!r)return;const{ctx,W,H}=r;ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='rgba(186,117,23,0.2)';ctx.fillRect(ar_z0/zmax*W,0,(ar_z1-ar_z0)/zmax*W,H);
+    ctx.fillStyle='rgba(55,138,221,0.2)';ctx.fillRect(si_z0/zmax*W,0,(si_z1-si_z0)/zmax*W,H);
+    ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();
+    const mx=Math.max(...Array.from(sig).map(Math.abs),.01);
+    ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.beginPath();
+    Array.from(sig).forEach((v,i)=>{const x=i/zdim*W,y=H/2-v/mx*H*.42;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();
+    [ar_z0,ar_z1,si_z0].forEach(z=>{ctx.strokeStyle=BC();ctx.lineWidth=0.8;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(z/zmax*W,0);ctx.lineTo(z/zmax*W,H);ctx.stroke();ctx.setLineDash([]);});
+    ctx.font='10px sans-serif';ctx.fillStyle='rgba(186,117,23,0.9)';ctx.fillText('AR',ar_z0/zmax*W+3,13);ctx.fillStyle='rgba(55,138,221,0.9)';ctx.fillText('Si',si_z0/zmax*W+3,13);
+    ctx.fillStyle=SC();ctx.fillText('t='+iter,4,H-4);
+  }
+  drawF('cex',Ex,160,'#534AB7');
+  const pow=Array.from(Ex).map((e,i)=>e*Hy[i]);drawF('cpow',pow,130,'#D85A30');
+  document.getElementById('step-info').textContent='스텝: '+iter+'/'+ns+' | '+Math.round(iter/ns*100)+'%';
+}
+
+up();
+const r0=getCtx('cex',160);
+if(r0){const{ctx,W,H}=r0;ctx.fillStyle=isDk()?'#2a2a2a':'#f5f5f3';ctx.fillRect(0,0,W,H);ctx.font='13px sans-serif';ctx.fillStyle=SC();ctx.textAlign='center';ctx.fillText('▶ 위의 버튼을 눌러 FDTD 시뮬레이션을 시작하세요',W/2,H/2);ctx.textAlign='left';}
+</script>
+</body>
+</html>

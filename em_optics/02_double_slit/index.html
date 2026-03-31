@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이중 슬릿 2D FDTD — physics-sim-platform</title>
+<style>
+  :root{--bg:#fff;--bg2:#f5f5f3;--bd:rgba(0,0,0,0.12);--tx:#1a1a1a;--tx2:#666;--ib:#E6F1FB;--ic:#185FA5;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--bd:rgba(255,255,255,0.12);--tx:#e8e8e8;--tx2:#999;--ib:#0c2a40;--ic:#5aabf0;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);}
+  nav{background:var(--bg2);border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+  nav a{font-size:13px;color:var(--tx2);text-decoration:none;}nav a:hover{color:var(--tx);}
+  .sep{color:var(--bd);}.cur{color:var(--tx);font-weight:500;}
+  .container{max-width:860px;margin:0 auto;padding:24px 16px;}
+  h1{font-size:22px;font-weight:500;margin-bottom:4px;}.subtitle{font-size:14px;color:var(--tx2);margin-bottom:24px;}
+  .p{background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+  .lbl{font-size:11px;color:var(--tx2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .row label{font-size:13px;color:var(--tx2);width:110px;flex-shrink:0;}
+  .row input[type=range]{flex:1;accent-color:#534AB7;}
+  .val{font-size:13px;font-weight:500;min-width:60px;text-align:right;}
+  canvas{width:100%;display:block;}
+  .mr{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+  .mc{background:var(--bg2);border-radius:8px;padding:8px 10px;}
+  .ml{font-size:11px;color:var(--tx2);}.mv{font-size:14px;font-weight:500;margin-top:2px;}
+  .note{font-size:12px;color:var(--tx2);padding:8px 12px;background:var(--bg2);border-radius:8px;line-height:1.6;margin-top:8px;}
+  .eq{font-family:monospace;font-size:12px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px 10px;line-height:1.7;margin-bottom:4px;}
+  .th{background:var(--bg2);border-radius:12px;border:1px solid var(--bd);padding:14px;margin-bottom:10px;display:none;}
+  .th.show{display:block;}
+  .thbtn{font-size:12px;padding:4px 12px;border-radius:8px;border:1px solid var(--ic);background:transparent;color:var(--ic);cursor:pointer;}
+  .thbtn.open{background:var(--ib);}
+  .rbtn{font-size:13px;padding:8px 20px;border-radius:8px;border:1px solid var(--bd);background:var(--bg2);color:var(--tx);cursor:pointer;font-family:inherit;font-weight:500;}
+  .rbtn.run{border-color:var(--ic);color:var(--ic);}
+  .pb{height:4px;background:var(--bg2);border-radius:2px;overflow:hidden;margin-top:6px;}
+  .pf{height:100%;background:#378ADD;width:0%;}
+  .tb{display:flex;gap:6px;margin-bottom:10px;}
+  .tab{font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid var(--bd);background:transparent;color:var(--tx2);cursor:pointer;}
+  .tab.active{background:var(--bg2);color:var(--tx);font-weight:500;}
+</style>
+</head>
+<body>
+<nav>
+  <a href="../../index.html">physics-sim-platform</a><span class="sep">/</span>
+  <a href="../index.html">em_optics</a><span class="sep">/</span>
+  <span class="cur">02 이중 슬릿</span>
+</nav>
+<div class="container">
+  <h1>Young's Double Slit — 2D FDTD</h1>
+  <p class="subtitle">이중 슬릿 간섭 실험 · 2D FDTD · PEC 장벽 · 간섭 패턴 시각화</p>
+
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+    <button class="thbtn" id="thBtn" onclick="toggleTh()">이론 보기</button>
+    <span style="font-size:12px;color:var(--tx2);margin-left:4px;">Double_Slit_FDTD.py → JavaScript 포팅</span>
+  </div>
+  <div id="thPanel" class="th">
+    <div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:500;color:var(--tx2);text-transform:uppercase;margin-bottom:6px;">Young의 이중 슬릿 간섭 이론</div>
+      <div class="eq">밝은 무늬: d·sinθ = mλ  (m=0,±1,±2,...)</div>
+      <div class="eq">무늬 간격: Δy = λL/d  (L=스크린 거리, d=슬릿 간격)</div>
+      <div class="eq">단일슬릿 포락선: I ∝ sinc²(πa·sinθ/λ)  (a=슬릿 너비)</div>
+    </div>
+    <div><div style="font-size:11px;font-weight:500;color:var(--tx2);text-transform:uppercase;margin-bottom:6px;">2D FDTD (TM 모드)</div>
+      <div class="eq">∂Ey/∂t = (1/ε)[∂Hz/∂z − ∂Hx/∂x]  ← 전기장 업데이트</div>
+      <div class="eq">∂Hz/∂t = (1/μ)·∂Ey/∂x,  ∂Hx/∂t = −(1/μ)·∂Ey/∂z  ← 자기장</div>
+      <div class="eq">PEC 장벽: ε = 10000·ε₀ 근사  |  PML: 흡수 경계 조건</div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="p"><div class="lbl">슬릿 파라미터</div>
+      <div class="row"><label>슬릿 너비 (셀)</label><input type="range" min="2" max="15" value="6" step="1" id="sw" oninput="up()"><span class="val" id="swv">6</span></div>
+      <div class="row"><label>슬릿 간격 (셀)</label><input type="range" min="10" max="55" value="28" step="2" id="ss" oninput="up()"><span class="val" id="ssv">28</span></div>
+      <div class="row"><label>슬릿 z 위치</label><input type="range" min="30" max="80" value="50" step="5" id="sz" oninput="up()"><span class="val" id="szv">50</span></div>
+    </div>
+    <div class="p"><div class="lbl">광학 파라미터</div>
+      <div class="row"><label>파장 λ (nm)</label><input type="range" min="300" max="1200" value="500" step="50" id="wl" oninput="up()"><span class="val" id="wlv">500 nm</span></div>
+      <div class="row"><label>격자 간격 (nm)</label><input type="range" min="20" max="100" value="50" step="10" id="dsp" oninput="up()"><span class="val" id="dspv">50 nm</span></div>
+    </div>
+    <div class="p"><div class="lbl">시뮬레이션</div>
+      <div class="row"><label>스텝 수</label><input type="range" min="200" max="1000" value="500" step="100" id="ns" oninput="up()"><span class="val" id="nsv">500</span></div>
+      <button class="rbtn" id="runBtn" onclick="toggleRun()" style="margin-top:8px;">▶ 시뮬레이션 실행</button>
+      <div class="pb"><div class="pf" id="pf"></div></div>
+      <div id="st" style="font-size:12px;color:var(--tx2);margin-top:4px;">준비</div>
+    </div>
+  </div>
+
+  <div class="p"><div class="lbl">슬릿 설정 미리보기</div>
+    <div class="g2">
+      <div style="position:relative;height:100px;"><canvas id="cprev"></canvas></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start;">
+        <div class="mc"><div class="ml">슬릿 너비 (nm)</div><div class="mv" id="sw_nm">—</div></div>
+        <div class="mc"><div class="ml">슬릿 간격 (nm)</div><div class="mv" id="ss_nm">—</div></div>
+        <div class="mc"><div class="ml">이론 무늬 간격</div><div class="mv" id="fringe">—</div></div>
+        <div class="mc"><div class="ml">λ/격자 비율</div><div class="mv" id="lrat">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="p"><div class="lbl">Ey 전기장 — 2D 실시간</div>
+    <div style="position:relative;height:220px;"><canvas id="c2d"></canvas></div>
+    <div class="note">파란색=음, 빨간색=양. 흰 점선=슬릿 위치. 슬릿 통과 후 회절·간섭 패턴이 형성됩니다.</div>
+  </div>
+
+  <div class="tb">
+    <button class="tab active" onclick="setTab('avg')">시간 평균 강도</button>
+    <button class="tab" onclick="setTab('snap')">순간 단면</button>
+    <button class="tab" onclick="setTab('cmp')">이론 vs FDTD</button>
+  </div>
+
+  <div id="tab-avg"><div class="p">
+    <div class="lbl">시간 평균 강도 |E|² — z 방향 (x=중앙)</div>
+    <div style="position:relative;height:150px;"><canvas id="cavg"></canvas></div>
+    <div class="note">마지막 200스텝 평균. 밝은 무늬(constructive)와 어두운 무늬(destructive)의 주기가 이론값 Δy=λL/d와 일치하는지 확인하세요.</div>
+  </div></div>
+
+  <div id="tab-snap" style="display:none;"><div class="p">
+    <div class="lbl">순간 Ey — z 단면 (x=중앙)</div>
+    <div style="position:relative;height:120px;"><canvas id="csnz"></canvas></div>
+    <div class="lbl" style="margin-top:10px;">순간 Ey — x 단면 (슬릿 뒤 z+40)</div>
+    <div style="position:relative;height:100px;"><canvas id="csnx"></canvas></div>
+  </div></div>
+
+  <div id="tab-cmp" style="display:none;"><div class="p">
+    <div class="lbl">이론 I(x) vs FDTD |E|² — x 단면 비교</div>
+    <div style="position:relative;height:180px;"><canvas id="ccmp"></canvas></div>
+    <div class="note">이론(파란색): I = cos²(πd·sinθ/λ)·sinc²(πa·sinθ/λ). FDTD(빨간색): 시간 평균 강도. 무늬 주기와 포락선 일치도를 확인하세요.</div>
+  </div></div>
+
+  <div class="mr">
+    <div class="mc"><div class="ml">λ/격자 (PPW)</div><div class="mv" id="ppw">—</div></div>
+    <div class="mc"><div class="ml">도메인</div><div class="mv">200×120</div></div>
+    <div class="mc"><div class="ml">CFL = 0.707</div><div class="mv" id="dtv">—</div></div>
+    <div class="mc"><div class="ml">측정 무늬 간격</div><div class="mv" id="mfr">—</div></div>
+  </div>
+</div>
+<script>
+const c0=3e8,eps0=8.854e-12,mu0=4*Math.PI*1e-7,CFL=0.7071;
+const ZDIM=200,XDIM=120,NPML=15,mPML=4,rfac=1e-10;
+let running=false,raf=null,thOpen=false,curTab='avg';
+let lastEy=null,lastAvg=null,simCfg=null;
+let p={sw:6,ss:28,sz:50,wl:500,dsp:50,ns:500};
+
+const isDk=()=>window.matchMedia('(prefers-color-scheme:dark)').matches;
+const BC=()=>isDk()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';
+const SC=()=>isDk()?'#888':'#666';
+function getCtx(id,h){const el=document.getElementById(id);if(!el)return null;const dpr=window.devicePixelRatio||1;const W=el.parentElement.getBoundingClientRect().width||500;el.width=W*dpr;el.height=h*dpr;const ctx=el.getContext('2d');ctx.scale(dpr,dpr);return{ctx,W,H:h};}
+
+function toggleTh(){thOpen=!thOpen;document.getElementById('thPanel').className='th'+(thOpen?' show':'');const b=document.getElementById('thBtn');b.textContent=thOpen?'이론 닫기':'이론 보기';b.className='thbtn'+(thOpen?' open':'');}
+function setTab(t){curTab=t;['avg','snap','cmp'].forEach((x,i)=>{document.getElementById('tab-'+x).style.display=x===t?'':'none';document.querySelectorAll('.tab')[i].className='tab'+(x===t?' active':'');});if(lastEy&&lastAvg&&simCfg)drawResult(lastEy,lastAvg,simCfg);}
+
+function up(){
+  p={sw:+sw.value,ss:+ss.value,sz:+sz.value,wl:+wl.value,dsp:+dsp.value,ns:+ns.value};
+  swv.textContent=p.sw;ssv.textContent=p.ss;szv.textContent=p.sz;
+  wlv.textContent=p.wl+' nm';dspv.textContent=p.dsp+' nm';nsv.textContent=p.ns;
+  const L=(ZDIM-p.sz)*p.dsp,fr=(p.wl*L)/(p.ss*p.dsp);
+  document.getElementById('sw_nm').textContent=(p.sw*p.dsp)+' nm';document.getElementById('ss_nm').textContent=(p.ss*p.dsp)+' nm';document.getElementById('fringe').textContent=fr.toFixed(0)+' nm';document.getElementById('lrat').textContent=(p.wl/p.dsp).toFixed(1);document.getElementById('ppw').textContent=(p.wl/p.dsp).toFixed(1);
+  const dt=CFL*p.dsp*1e-9/c0;document.getElementById('dtv').textContent=dt.toExponential(2)+'s';
+  drawPreview();
+}
+
+function drawPreview(){
+  const r=getCtx('cprev',100);if(!r)return;
+  const{ctx,W,H}=r;ctx.clearRect(0,0,W,H);ctx.fillStyle=isDk()?'#2a2a2a':'#f5f5f3';ctx.fillRect(0,0,W,H);
+  const scZ=W/ZDIM,scX=H/XDIM,cx=XDIM/2;
+  const s1l=cx-p.ss/2-p.sw,s1h=cx-p.ss/2,s2l=cx+p.ss/2,s2h=cx+p.ss/2+p.sw;
+  ctx.strokeStyle='rgba(55,138,221,0.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(20*scZ,0);ctx.lineTo(20*scZ,H);ctx.stroke();
+  ctx.fillStyle='rgba(140,140,140,0.55)';
+  ctx.fillRect(p.sz*scZ,0,2,s1l*scX);if(s1h<s2l)ctx.fillRect(p.sz*scZ,s1h*scX,2,(s2l-s1h)*scX);ctx.fillRect(p.sz*scZ,s2h*scX,2,(XDIM-s2h)*scX);
+  ctx.strokeStyle='#D85A30';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(p.sz*scZ,s1l*scX);ctx.lineTo(p.sz*scZ,s1h*scX);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(p.sz*scZ,s2l*scX);ctx.lineTo(p.sz*scZ,s2h*scX);ctx.stroke();
+  ctx.font='9px sans-serif';ctx.fillStyle=SC();ctx.fillText('소스',22*scZ,12);ctx.fillStyle='#D85A30';ctx.fillText('슬릿',p.sz*scZ+3,s1l*scX+10);
+}
+
+function buildSim(){
+  const ds=p.dsp*1e-9,dt=CFL*ds/c0,omega=2*Math.PI*c0/(p.wl*1e-9);
+  const eta=Math.sqrt(mu0/eps0),smax=(-(mPML+1)*Math.log(rfac))/(2*ds*NPML*eta);
+  const cx=Math.floor(XDIM/2),s1l=cx-Math.floor(p.ss/2)-p.sw,s1h=cx-Math.floor(p.ss/2),s2l=cx+Math.floor(p.ss/2),s2h=cx+Math.floor(p.ss/2)+p.sw;
+  const N=ZDIM*XDIM;
+  const Hx=new Float32Array(N),Hz=new Float32Array(N),Ey=new Float32Array(N);
+  const eps=new Float32Array(N).fill(eps0),mu=new Float32Array(N).fill(mu0);
+  for(const bz of[p.sz,p.sz+1]){if(bz>=ZDIM)continue;for(let x=0;x<XDIM;x++){if(x<s1l||x>=s1h&&x<s2l||x>=s2h)eps[bz*XDIM+x]=10000*eps0;}}
+  const sgx=new Float32Array(N),sgz=new Float32Array(N);
+  for(let z=0;z<ZDIM;z++)for(let x=0;x<XDIM;x++){const i=z*XDIM+x;if(x<NPML)sgz[i]=Math.pow((NPML-x)/NPML,mPML)*smax;else if(x>=XDIM-NPML)sgz[i]=Math.pow((x-(XDIM-NPML)+1)/NPML,mPML)*smax;if(z<NPML)sgx[i]=Math.pow((NPML-z)/NPML,mPML)*smax;else if(z>=ZDIM-NPML)sgx[i]=Math.pow((z-(ZDIM-NPML)+1)/NPML,mPML)*smax;}
+  const sxs=sgx.map((s,i)=>(s*mu[i])/eps[i]),szs=sgz.map((s,i)=>(s*mu[i])/eps[i]);
+  const A1x=new Float32Array(N),B1x=new Float32Array(N),A1z=new Float32Array(N),B1z=new Float32Array(N),A2=new Float32Array(N),B2=new Float32Array(N);
+  for(let i=0;i<N;i++){A1x[i]=(mu[i]-sxs[i]*dt/2)/(mu[i]+sxs[i]*dt/2);B1x[i]=(dt/ds)/(mu[i]+.5*dt*sxs[i]);A1z[i]=(mu[i]-szs[i]*dt/2)/(mu[i]+szs[i]*dt/2);B1z[i]=(dt/ds)/(mu[i]+.5*dt*szs[i]);A2[i]=(eps[i]-sgz[i]*dt/2)/(eps[i]+sgz[i]*dt/2);B2[i]=(dt/ds)/(eps[i]+.5*dt*sgz[i]);}
+  return{Hx,Hz,Ey,A1x,B1x,A1z,B1z,A2,B2,omega,dt,z_src:20,s1l,s1h,s2l,s2h,barrier_z:p.sz};
+}
+
+function toggleRun(){if(running){running=false;if(raf){cancelAnimationFrame(raf);raf=null;}document.getElementById('runBtn').textContent='▶ 다시 실행';document.getElementById('runBtn').className='rbtn';return;}startSim();}
+
+function startSim(){
+  running=true;document.getElementById('runBtn').textContent='■ 중지';document.getElementById('runBtn').className='rbtn run';
+  const sim=buildSim();simCfg=sim;
+  const{Hx,Hz,Ey,A1x,B1x,A1z,B1z,A2,B2,omega,dt,z_src}=sim;
+  const ns=p.ns,avgStart=Math.max(0,ns-200),avgEy2=new Float32Array(ZDIM*XDIM);
+  let iter=0;
+  function step(){
+    if(!running||iter>=ns){finish();return;}
+    for(let b=0;b<8&&iter<ns;b++,iter++){
+      for(let z=0;z<ZDIM-1;z++)for(let x=0;x<XDIM;x++){const i=z*XDIM+x;Hz[i]=A1x[i]*Hz[i]+B1x[i]*(Ey[(z+1)*XDIM+x]-Ey[i]);}
+      for(let z=0;z<ZDIM;z++)for(let x=0;x<XDIM-1;x++){const i=z*XDIM+x;Hx[i]=A1z[i]*Hx[i]-B1z[i]*(Ey[i+1]-Ey[i]);}
+      for(let z=1;z<ZDIM-1;z++)for(let x=1;x<XDIM-1;x++){const i=z*XDIM+x;Ey[i]=A2[i]*Ey[i]+B2[i]*(Hz[i]-Hz[(z-1)*XDIM+x]-Hx[i]+Hx[z*XDIM+x-1]);}
+      const src=Math.sin(omega*iter*dt);for(let x=8;x<XDIM-8;x++)Ey[z_src*XDIM+x]+=src;
+      if(iter>=avgStart)for(let i=0;i<ZDIM*XDIM;i++)avgEy2[i]+=Ey[i]*Ey[i];
+    }
+    lastEy=Ey;lastAvg=avgEy2;
+    draw2D(Ey,sim,iter);drawResult(Ey,avgEy2,sim);
+    document.getElementById('pf').style.width=(iter/ns*100)+'%';document.getElementById('st').textContent='스텝 '+iter+'/'+ns;
+    raf=requestAnimationFrame(step);
+  }
+  function finish(){running=false;document.getElementById('runBtn').textContent='▶ 다시 실행';document.getElementById('runBtn').className='rbtn';document.getElementById('pf').style.width='100%';document.getElementById('st').textContent='완료';measureFringe(avgEy2,sim);}
+  raf=requestAnimationFrame(step);
+}
+
+function draw2D(Ey,sim,iter){
+  const r=getCtx('c2d',220);if(!r)return;const{ctx,W,H}=r;const{s1l,s1h,s2l,s2h,barrier_z}=sim;
+  const imgD=ctx.createImageData(W,H);let mx=0;for(let i=0;i<Ey.length;i++)if(Math.abs(Ey[i])>mx)mx=Math.abs(Ey[i]);mx=Math.max(mx,.01);
+  for(let z=0;z<ZDIM;z++)for(let x=0;x<XDIM;x++){const v=Ey[z*XDIM+x]/mx;const px=Math.floor(z*W/ZDIM),py=Math.floor(x*H/XDIM);const pw=Math.max(1,Math.floor((z+1)*W/ZDIM)-px),ph=Math.max(1,Math.floor((x+1)*H/XDIM)-py);let r2,g,b;if(v>0){r2=Math.round(255*v);g=Math.round(60*v);b=0;}else{r2=0;g=Math.round(60*(-v));b=Math.round(255*(-v));}for(let dz=0;dz<pw;dz++)for(let dx=0;dx<ph;dx++){const p2=((py+dx)*W+(px+dz))*4;imgD.data[p2]=r2;imgD.data[p2+1]=g;imgD.data[p2+2]=b;imgD.data[p2+3]=255;}}
+  ctx.putImageData(imgD,0,0);
+  const scZ=W/ZDIM,scX=H/XDIM;
+  ctx.fillStyle='rgba(140,140,140,0.6)';ctx.fillRect(barrier_z*scZ,0,2,s1l*scX);if(s1h<s2l)ctx.fillRect(barrier_z*scZ,s1h*scX,2,(s2l-s1h)*scX);ctx.fillRect(barrier_z*scZ,s2h*scX,2,(XDIM-s2h)*scX);
+  ctx.strokeStyle='rgba(255,255,255,0.7)';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(barrier_z*scZ,0);ctx.lineTo(barrier_z*scZ,H);ctx.stroke();ctx.setLineDash([]);
+  ctx.font='10px sans-serif';ctx.fillStyle='rgba(255,255,255,0.8)';ctx.fillText('t='+iter,4,14);
+}
+
+function drawResult(Ey,avgEy2,sim){
+  const{s1l,s1h,s2l,s2h,barrier_z}=sim;const xObs=Math.floor(XDIM/2);
+  if(curTab==='avg'){
+    const r=getCtx('cavg',150);if(!r)return;const{ctx,W,H}=r;ctx.clearRect(0,0,W,H);
+    const prof=Array.from({length:ZDIM},(_,z)=>avgEy2[z*XDIM+xObs]);const mx=Math.max(...prof,.01);
+    ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-18);ctx.lineTo(W,H-18);ctx.stroke();
+    ctx.strokeStyle='rgba(55,138,221,0.4)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(barrier_z/ZDIM*W,0);ctx.lineTo(barrier_z/ZDIM*W,H-18);ctx.stroke();ctx.setLineDash([]);
+    ctx.strokeStyle='#D85A30';ctx.lineWidth=2;ctx.beginPath();prof.forEach((v,z)=>{const x=z/ZDIM*W,y=H-18-v/mx*(H-24);z===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();
+    ctx.font='10px sans-serif';ctx.fillStyle='rgba(55,138,221,0.7)';ctx.fillText('슬릿',barrier_z/ZDIM*W+3,12);ctx.fillStyle=SC();ctx.fillText('z →',W-20,H-4);
+  } else if(curTab==='snap'){
+    const r1=getCtx('csnz',120);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);const prof=Array.from({length:ZDIM},(_,z)=>Ey[z*XDIM+xObs]);const mx=Math.max(...prof.map(Math.abs),.01);ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();ctx.strokeStyle='#534AB7';ctx.lineWidth=1.5;ctx.beginPath();prof.forEach((v,z)=>{const x=z/ZDIM*W,y=H/2-v/mx*H*.42;z===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();ctx.font='10px sans-serif';ctx.fillStyle='#534AB7';ctx.fillText('Ey(z, x=중앙)',4,12);}
+    const r2=getCtx('csnx',100);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);const obsZ=Math.min(barrier_z+40,ZDIM-1);const prof=Array.from({length:XDIM},(_,x)=>Ey[obsZ*XDIM+x]);const mx=Math.max(...prof.map(Math.abs),.01);ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();ctx.strokeStyle='#1D9E75';ctx.lineWidth=1.5;ctx.beginPath();prof.forEach((v,x)=>{const px=x/XDIM*W,py=H/2-v/mx*H*.42;x===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});ctx.stroke();ctx.font='10px sans-serif';ctx.fillStyle='#1D9E75';ctx.fillText('Ey(x, z=슬릿+40)',4,12);}
+  } else if(curTab==='cmp'){
+    const r=getCtx('ccmp',180);if(!r)return;const{ctx,W,H}=r;ctx.clearRect(0,0,W,H);
+    const ds2=p.dsp*1e-9,lam=p.wl*1e-9,d=p.ss*ds2,a=p.sw*ds2,L=(ZDIM-barrier_z)*ds2;
+    const obsZ=Math.min(barrier_z+50,ZDIM-1);const fdtd=Array.from({length:XDIM},(_,x)=>avgEy2[obsZ*XDIM+x]);const mxF=Math.max(...fdtd,.01);
+    const xc=XDIM/2;const theo=Array.from({length:XDIM},(_,x)=>{const xi=(x-xc)*ds2,sinT=xi/Math.sqrt(xi*xi+L*L),beta=Math.PI*d*sinT/lam,alpha=Math.PI*a*sinT/lam,s=Math.abs(alpha)<1e-8?1:Math.sin(alpha)/alpha;return Math.pow(Math.cos(beta)*s,2);});const mxT=Math.max(...theo,.01);
+    ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-18);ctx.lineTo(W,H-18);ctx.stroke();
+    ctx.strokeStyle='#378ADD';ctx.lineWidth=2;ctx.beginPath();theo.forEach((v,x)=>{const px=x/XDIM*W,py=H-18-v/mxT*(H-24);x===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});ctx.stroke();
+    ctx.strokeStyle='#D85A30';ctx.lineWidth=1.8;ctx.beginPath();fdtd.forEach((v,x)=>{const px=x/XDIM*W,py=H-18-v/mxF*(H-24);x===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});ctx.stroke();
+    ctx.font='10px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('이론',4,12);ctx.fillStyle='#D85A30';ctx.fillText('FDTD',4,24);ctx.fillStyle=SC();ctx.fillText('x →',W-20,H-4);
+  }
+}
+
+function measureFringe(avgEy2,sim){
+  const obsZ=Math.min(sim.barrier_z+40,ZDIM-1);const prof=Array.from({length:XDIM},(_,x)=>avgEy2[obsZ*XDIM+x]);const mxV=Math.max(...prof);
+  const peaks=[];for(let x=1;x<XDIM-1;x++)if(prof[x]>prof[x-1]&&prof[x]>prof[x+1]&&prof[x]>0.1*mxV)peaks.push(x);
+  if(peaks.length>=2){const diffs=peaks.slice(1).map((pp,i)=>pp-peaks[i]);const avg=diffs.reduce((a,b)=>a+b,0)/diffs.length;document.getElementById('mfr').textContent=(avg*p.dsp).toFixed(0)+' nm';}
+  else document.getElementById('mfr').textContent='측정 중...';
+}
+
+up();
+const r0=getCtx('c2d',220);
+if(r0){const{ctx,W,H}=r0;ctx.fillStyle=isDk()?'#2a2a2a':'#f5f5f3';ctx.fillRect(0,0,W,H);ctx.font='13px sans-serif';ctx.fillStyle=SC();ctx.textAlign='center';ctx.fillText('▶ 위의 버튼을 눌러 시뮬레이션을 시작하세요',W/2,H/2);ctx.textAlign='left';}
+</script>
+</body>
+</html>
