@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>확률 & 통계 — physics-sim-platform</title>
+<style>
+  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.12);--text:#1a1a1a;--text2:#666;--info-bg:#E6F1FB;--info:#185FA5;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.12);--text:#e8e8e8;--text2:#999;--info-bg:#0c2a40;--info:#5aabf0;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
+  nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+  nav a{font-size:13px;color:var(--text2);text-decoration:none;}nav a:hover{color:var(--text);}
+  .sep{color:var(--border);}.cur{color:var(--text);font-weight:500;}
+  .container{max-width:860px;margin:0 auto;padding:24px 16px;}
+  h1{font-size:22px;font-weight:500;margin-bottom:4px;}.subtitle{font-size:14px;color:var(--text2);margin-bottom:24px;}
+  .panel{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .lbl{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .row label{font-size:13px;color:var(--text2);width:90px;flex-shrink:0;}
+  .row input[type=range]{flex:1;accent-color:#534AB7;}.row select{flex:1;font-size:13px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);}
+  .val{font-size:13px;font-weight:500;min-width:56px;text-align:right;}
+  canvas{width:100%;display:block;}
+  .tab-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
+  .tab{font-size:12px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;}
+  .tab.active{background:var(--bg2);color:var(--text);font-weight:500;}
+  .theory-btn{font-size:12px;padding:4px 12px;border-radius:8px;border:1px solid var(--info);background:transparent;color:var(--info);cursor:pointer;font-family:inherit;margin-left:auto;}
+  .theory-btn.open{background:var(--info-bg);}
+  .theory-box{background:var(--bg2);border-radius:12px;border:1px solid var(--border);padding:16px;margin-bottom:10px;display:none;}
+  .theory-box.show{display:block;}
+  .theory-box h3{font-size:14px;font-weight:500;margin-bottom:12px;}
+  .ts{margin-bottom:14px;}.ts-lbl{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+  .eq{font-family:monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;line-height:1.7;margin-bottom:5px;}
+  .tt{font-size:13px;color:var(--text2);line-height:1.7;}
+  .code-ref{font-family:monospace;font-size:12px;background:var(--bg);border-left:2px solid #534AB7;padding:8px 12px;border-radius:0 8px 8px 0;color:var(--text2);margin-top:6px;line-height:1.6;}
+  .metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+  .metric{background:var(--bg2);border-radius:8px;padding:8px 10px;}.m-label{font-size:11px;color:var(--text2);}.m-val{font-size:14px;font-weight:500;margin-top:2px;}
+  .note{font-size:12px;color:var(--text2);margin-top:8px;padding:8px 12px;background:var(--bg2);border-radius:8px;line-height:1.6;}
+</style>
+</head>
+<body>
+<nav>
+  <a href="../../index.html">physics-sim-platform</a><span class="sep">/</span>
+  <a href="../index.html">signals</a><span class="sep">/</span>
+  <span class="cur">06 확률 & 통계</span>
+</nav>
+<div class="container">
+  <h1>확률 & 통계</h1>
+  <p class="subtitle">가우시안 분포 · 랜덤 변수 · 중심극한정리 · 결합 분포</p>
+  <div class="tab-bar">
+    <button class="tab active" onclick="setMode('gaussian')">가우시안</button>
+    <button class="tab" onclick="setMode('rv')">랜덤 변수</button>
+    <button class="tab" onclick="setMode('clt')">중심극한정리</button>
+    <button class="tab" onclick="setMode('joint')">결합 분포</button>
+    <button class="theory-btn" id="theoryBtn" onclick="toggleTheory()">이론 보기</button>
+  </div>
+  <div id="theoryPanel" class="theory-box"></div>
+
+  <div id="mode-gaussian">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">분포 파라미터</div>
+        <div class="row"><label>평균 μ</label><input type="range" min="-3" max="3" value="0" step="0.1" id="g_mu" oninput="drawGaussian()"><span class="val" id="g_muv">0.0</span></div>
+        <div class="row"><label>표준편차 σ</label><input type="range" min="0.2" max="3" value="1" step="0.1" id="g_sigma" oninput="drawGaussian()"><span class="val" id="g_sigmav">1.0</span></div>
+      </div>
+      <div class="panel"><div class="lbl">구간 확률 P(a ≤ X ≤ b)</div>
+        <div class="row"><label>하한 a</label><input type="range" min="-5" max="5" value="-1" step="0.1" id="g_a" oninput="drawGaussian()"><span class="val" id="g_av">-1.0</span></div>
+        <div class="row"><label>상한 b</label><input type="range" min="-5" max="5" value="1" step="0.1" id="g_b" oninput="drawGaussian()"><span class="val" id="g_bv">1.0</span></div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">PDF — 정규분포 f(x)</div><div style="position:relative;height:180px;"><canvas id="c-g-pdf"></canvas></div></div>
+    <div class="panel"><div class="lbl">CDF — 누적분포함수 F(x)</div><div style="position:relative;height:110px;"><canvas id="c-g-cdf"></canvas></div>
+      <div class="metric-row">
+        <div class="metric"><div class="m-label">P(a ≤ X ≤ b)</div><div class="m-val" id="g-prob">—</div></div>
+        <div class="metric"><div class="m-label">1σ 구간</div><div class="m-val">68.27%</div></div>
+        <div class="metric"><div class="m-label">2σ 구간</div><div class="m-val">95.45%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mode-rv" style="display:none;">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">분포 종류</div>
+        <div class="row"><label>분포</label><select id="rv_type" onchange="drawRV()"><option value="uniform">균일 (Uniform)</option><option value="exponential">지수 (Exponential)</option><option value="binomial">이항 (Binomial)</option><option value="poisson">포아송 (Poisson)</option></select></div>
+      </div>
+      <div class="panel"><div class="lbl">파라미터</div>
+        <div class="row"><label id="rv_p1l">파라미터 1</label><input type="range" min="0.1" max="5" value="1" step="0.1" id="rv_p1" oninput="drawRV()"><span class="val" id="rv_p1v">1.0</span></div>
+        <div class="row"><label id="rv_p2l">파라미터 2</label><input type="range" min="0.1" max="10" value="5" step="0.1" id="rv_p2" oninput="drawRV()"><span class="val" id="rv_p2v">5.0</span></div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">PDF / PMF</div><div style="position:relative;height:160px;"><canvas id="c-rv-pdf"></canvas></div></div>
+    <div class="panel"><div class="lbl">CDF</div><div style="position:relative;height:90px;"><canvas id="c-rv-cdf"></canvas></div>
+      <div class="metric-row">
+        <div class="metric"><div class="m-label">평균 E[X]</div><div class="m-val" id="rv-mean">—</div></div>
+        <div class="metric"><div class="m-label">분산 Var[X]</div><div class="m-val" id="rv-var">—</div></div>
+        <div class="metric"><div class="m-label">표준편차</div><div class="m-val" id="rv-std">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mode-clt" style="display:none;">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">원본 분포</div><div class="row"><label>분포 형태</label><select id="clt_dist" onchange="drawCLT()"><option value="uniform">균일 분포</option><option value="exponential">지수 분포</option><option value="bimodal">이봉 분포</option></select></div></div>
+      <div class="panel"><div class="lbl">샘플 크기</div><div class="row"><label>n</label><input type="range" min="1" max="50" value="1" step="1" id="clt_n" oninput="drawCLT()"><span class="val" id="clt_nv">1</span></div></div>
+    </div>
+    <div class="panel"><div class="lbl">원본 분포</div><div style="position:relative;height:100px;"><canvas id="c-clt-orig"></canvas></div></div>
+    <div class="panel"><div class="lbl">표본 평균의 분포 (10000번 반복)</div><div style="position:relative;height:150px;"><canvas id="c-clt-hist"></canvas></div>
+      <div class="note">n이 커질수록 원본 분포의 형태에 무관하게 표본 평균의 분포가 정규분포에 수렴한다 — 중심극한정리. AWGN 모델의 수학적 근거.</div>
+    </div>
+  </div>
+
+  <div id="mode-joint" style="display:none;">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">2D 가우시안</div>
+        <div class="row"><label>σx</label><input type="range" min="0.3" max="2" value="1" step="0.1" id="j_sx" oninput="drawJoint()"><span class="val" id="j_sxv">1.0</span></div>
+        <div class="row"><label>σy</label><input type="range" min="0.3" max="2" value="1" step="0.1" id="j_sy" oninput="drawJoint()"><span class="val" id="j_syv">1.0</span></div>
+      </div>
+      <div class="panel"><div class="lbl">상관관계</div>
+        <div class="row"><label>상관계수 ρ</label><input type="range" min="-0.95" max="0.95" value="0" step="0.05" id="j_rho" oninput="drawJoint()"><span class="val" id="j_rhov">0.00</span></div>
+        <div class="row"><label>샘플 수</label><input type="range" min="100" max="2000" value="500" step="100" id="j_n" oninput="drawJoint()"><span class="val" id="j_nv">500</span></div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">2D 산점도 — 결합 분포</div><div style="position:relative;height:240px;"><canvas id="c-joint"></canvas></div>
+      <div class="metric-row">
+        <div class="metric"><div class="m-label">상관계수 ρ</div><div class="m-val" id="j-rho">—</div></div>
+        <div class="metric"><div class="m-label">X 분산</div><div class="m-val" id="j-vx">—</div></div>
+        <div class="metric"><div class="m-label">Y 분산</div><div class="m-val" id="j-vy">—</div></div>
+      </div>
+      <div class="note">ρ=0이면 X와 Y가 독립(무상관). QAM 성상도에서 I/Q 채널 노이즈는 독립 가우시안(ρ=0)으로 모델링 → 원형 노이즈 클러스터.</div>
+    </div>
+  </div>
+</div>
+<script>
+let curMode='gaussian',theoryOpen=false;
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function erf(x){const t=1/(1+0.3275911*Math.abs(x));const y=1-t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))))*Math.exp(-x*x);return x>=0?y:-y;}
+function phi(x){return 0.5*(1+erf(x/Math.sqrt(2)));}
+function gpdf(x,mu,sigma){return Math.exp(-0.5*((x-mu)/sigma)**2)/(sigma*Math.sqrt(2*Math.PI));}
+const isDark=()=>window.matchMedia('(prefers-color-scheme:dark)').matches;
+const BC=()=>isDark()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';
+const SC=()=>isDark()?'#888':'#666';
+function getCtx(id,h){const el=document.getElementById(id);if(!el)return null;const dpr=window.devicePixelRatio||1;const W=el.parentElement.getBoundingClientRect().width||500;el.width=W*dpr;el.height=h*dpr;const ctx=el.getContext('2d');ctx.scale(dpr,dpr);return{ctx,W,H:h};}
+
+const theories={
+  gaussian:{title:'가우시안(정규) 분포 N(μ, σ²)',sections:[
+    {label:'핵심 수식',eqs:['f(x) = (1/√(2πσ²))·exp(-(x-μ)²/(2σ²))','F(x) = Φ((x-μ)/σ)  ← CDF','1σ: 68.27%,  2σ: 95.45%,  3σ: 99.73%']},
+    {label:'통신과의 연결',text:'채널 열잡음(AWGN)은 가우시안 분포를 따른다. BER 계산에 쓰이는 Q함수는 표준 정규분포의 꼬리 확률: Q(x) = 1 - Φ(x). BPSK의 BER = Q(√(2Eb/N0)).'},
+    {label:'구현',code:'// Box-Muller 변환\nfunction randn(){\n  const u=Math.random(), v=Math.random()\n  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)\n}'}
+  ]},
+  rv:{title:'확률 변수와 주요 분포',sections:[
+    {label:'균일 & 지수',eqs:['균일 U(a,b): f(x)=1/(b-a),  E[X]=(a+b)/2','지수 Exp(λ): f(x)=λe^(-λx),  E[X]=1/λ  (무기억성)']},
+    {label:'이항 & 포아송',eqs:['이항 B(n,p): P(k)=C(n,k)·p^k·(1-p)^(n-k)','포아송(λ): P(k)=λ^k·e^(-λ)/k!  (λ=np, n→∞)']},
+    {label:'개념',text:'포아송 분포: 단위 시간당 사건 발생 수 (패킷 도착, 광자 검출). 지수 분포: 다음 사건까지 대기 시간. 서로 쌍대 관계.'}
+  ]},
+  clt:{title:'중심극한정리 (CLT)',sections:[
+    {label:'핵심 수식',eqs:['X̄_n = (X₁+...+Xₙ)/n','E[X̄_n] = μ,  Var[X̄_n] = σ²/n','√n·(X̄_n-μ)/σ → N(0,1)  as n→∞']},
+    {label:'개념',text:'어떤 분포에서 샘플링하든 충분히 많은 수의 샘플 평균은 정규분포에 수렴한다. 이것이 AWGN 모델의 근거 — 실제 잡음은 수많은 독립적 미소 잡음의 합이므로 가우시안으로 근사된다.'},
+    {label:'구현',code:'const means = Array.from({length:10000}, ()=>{\n  const s = Array.from({length:n}, ()=>sample())\n  return s.reduce((a,b)=>a+b)/n\n})'}
+  ]},
+  joint:{title:'결합 분포와 상관관계',sections:[
+    {label:'핵심 수식',eqs:['f(x,y) = (1/(2πσxσy√(1-ρ²)))·exp(-z/2)','z = (x²/σx²-2ρxy/(σxσy)+y²/σy²)/(1-ρ²)','상관계수: ρ = Cov(X,Y)/(σx·σy)']},
+    {label:'QAM과의 연결',text:'QAM 성상도에서 I/Q 채널 노이즈는 독립 가우시안(ρ=0). ρ=0이면 산점도가 원형. ρ≠0이면 타원형으로 회전 — 이때 성상도가 왜곡돼 BER 증가.'},
+    {label:'구현',code:'// Cholesky 분해\nconst z1=randn(), z2=randn()\nconst x = sx*z1\nconst y = sy*(rho*z1 + Math.sqrt(1-rho**2)*z2)'}
+  ]}
+};
+function buildHTML(m){const th=theories[m];let h=`<h3>${th.title}</h3>`;th.sections.forEach(s=>{h+=`<div class="ts"><div class="ts-lbl">${s.label}</div>`;if(s.eqs)s.eqs.forEach(e=>{h+=`<div class="eq">${e}</div>`;});if(s.text)h+=`<div class="tt">${s.text}</div>`;if(s.code)h+=`<div class="code-ref">${s.code.replace(/\n/g,'<br>')}</div>`;h+=`</div>`;});return h;}
+function toggleTheory(){theoryOpen=!theoryOpen;const p=document.getElementById('theoryPanel'),b=document.getElementById('theoryBtn');p.innerHTML=buildHTML(curMode);p.className='theory-box'+(theoryOpen?' show':'');b.textContent=theoryOpen?'이론 닫기':'이론 보기';b.className='theory-btn'+(theoryOpen?' open':'');}
+
+function drawGaussian(){
+  const mu=+document.getElementById('g_mu').value,sigma=+document.getElementById('g_sigma').value;
+  const a=+document.getElementById('g_a').value,b=+document.getElementById('g_b').value;
+  document.getElementById('g_muv').textContent=mu.toFixed(1);document.getElementById('g_sigmav').textContent=sigma.toFixed(1);document.getElementById('g_av').textContent=a.toFixed(1);document.getElementById('g_bv').textContent=b.toFixed(1);
+  const xl=mu-4.5*sigma,xr=mu+4.5*sigma,ymax=gpdf(mu,mu,sigma)*1.1;
+  const xs=Array.from({length:300},(_,i)=>xl+i*(xr-xl)/299);
+  const sX=x=>(x-xl)/(xr-xl),sY=(y,H)=>H-(y/ymax)*(H-10)-5;
+  const r1=getCtx('c-g-pdf',180);
+  if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-5);ctx.lineTo(W,H-5);ctx.stroke();
+    ctx.fillStyle='rgba(55,138,221,0.15)';ctx.beginPath();const lo=Math.max(a,xl),hi=Math.min(b,xr);ctx.moveTo(sX(lo)*W,H-5);for(let x=lo;x<=hi;x+=(hi-lo)/100)ctx.lineTo(sX(x)*W,sY(gpdf(x,mu,sigma),H));ctx.lineTo(sX(hi)*W,H-5);ctx.closePath();ctx.fill();
+    [[1,'rgba(29,158,117,0.08)'],[2,'rgba(212,83,48,0.06)']].forEach(([k,c])=>{const l=mu-k*sigma,r=mu+k*sigma;ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(sX(l)*W,H-5);for(let x=l;x<=r;x+=(r-l)/50)ctx.lineTo(sX(x)*W,sY(gpdf(x,mu,sigma),H));ctx.lineTo(sX(r)*W,H-5);ctx.closePath();ctx.fill();});
+    ctx.strokeStyle='#378ADD';ctx.lineWidth=2;ctx.beginPath();xs.forEach((x,i)=>{i===0?ctx.moveTo(sX(x)*W,sY(gpdf(x,mu,sigma),H)):ctx.lineTo(sX(x)*W,sY(gpdf(x,mu,sigma),H));});ctx.stroke();
+    [a,b].forEach(v=>{ctx.strokeStyle='#D85A30';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(sX(v)*W,0);ctx.lineTo(sX(v)*W,H);ctx.stroke();ctx.setLineDash([]);});
+    ctx.font='10px sans-serif';ctx.fillStyle=SC();[mu-2*sigma,mu,mu+2*sigma].forEach(v=>{ctx.fillText(v.toFixed(1),sX(v)*W-8,H);});ctx.fillStyle='#378ADD';ctx.fillText('N('+mu.toFixed(1)+','+sigma.toFixed(1)+'²)',6,14);}
+  const r2=getCtx('c-g-cdf',110);
+  if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-5);ctx.lineTo(W,H-5);ctx.stroke();ctx.strokeStyle='#1D9E75';ctx.lineWidth=2;ctx.beginPath();xs.forEach((x,i)=>{const y=H-phi((x-mu)/sigma)*(H-10)-5;i===0?ctx.moveTo(sX(x)*W,y):ctx.lineTo(sX(x)*W,y);});ctx.stroke();[a,b].forEach(v=>{const y=H-phi((v-mu)/sigma)*(H-10)-5;ctx.strokeStyle='#D85A30';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(sX(v)*W,H);ctx.lineTo(sX(v)*W,y);ctx.moveTo(0,y);ctx.lineTo(sX(v)*W,y);ctx.stroke();ctx.setLineDash([]);});}
+  document.getElementById('g-prob').textContent=((phi((b-mu)/sigma)-phi((a-mu)/sigma))*100).toFixed(2)+'%';
+}
+
+function drawRV(){
+  const type=document.getElementById('rv_type').value,p1=+document.getElementById('rv_p1').value,p2=+document.getElementById('rv_p2').value;
+  document.getElementById('rv_p1v').textContent=p1.toFixed(1);document.getElementById('rv_p2v').textContent=p2.toFixed(1);
+  let pdf,cdf,mean,variance,xl,xr,discrete=false,pmfPts=[];
+  if(type==='uniform'){document.getElementById('rv_p1l').textContent='최솟값 a';document.getElementById('rv_p2l').textContent='최댓값 b';const a=p1,b=Math.max(p1+0.1,p2);xl=a-0.5;xr=b+0.5;pdf=x=>(x>=a&&x<=b)?1/(b-a):0;cdf=x=>x<a?0:x>b?1:(x-a)/(b-a);mean=(a+b)/2;variance=(b-a)**2/12;}
+  else if(type==='exponential'){document.getElementById('rv_p1l').textContent='λ (rate)';document.getElementById('rv_p2l').textContent='(미사용)';const lam=p1;xl=0;xr=5/lam;pdf=x=>x>=0?lam*Math.exp(-lam*x):0;cdf=x=>x>=0?1-Math.exp(-lam*x):0;mean=1/lam;variance=1/lam**2;}
+  else if(type==='binomial'){document.getElementById('rv_p1l').textContent='시행 수 n';document.getElementById('rv_p2l').textContent='성공 확률 p';const n=Math.round(p1*4),pr=Math.min(p2/10,0.99);discrete=true;xl=-0.5;xr=n+0.5;function fact(k){let r=1;for(let i=2;i<=k;i++)r*=i;return r;}function comb(a,b){return fact(a)/(fact(b)*fact(a-b));}pmfPts=Array.from({length:n+1},(_,k)=>({k,p:comb(n,k)*pr**k*(1-pr)**(n-k)}));mean=n*pr;variance=n*pr*(1-pr);}
+  else{document.getElementById('rv_p1l').textContent='λ (평균)';document.getElementById('rv_p2l').textContent='(미사용)';const lam=p1*3;discrete=true;xl=-0.5;xr=lam*3+0.5;function fact2(k){let r=1;for(let i=2;i<=k;i++)r*=i;return r;}const kmax=Math.ceil(lam*3);pmfPts=Array.from({length:kmax},(_,k)=>({k,p:Math.exp(-lam)*lam**k/fact2(k)}));mean=lam;variance=lam;}
+  const r1=getCtx('c-rv-pdf',160);
+  if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-20);ctx.lineTo(W,H-20);ctx.stroke();
+    if(discrete){const maxP=Math.max(...pmfPts.map(p=>p.p),0.01);const bw=(W-20)/Math.max(pmfPts.length,1);pmfPts.forEach(({k,p})=>{const x=20+(k-xl)/(xr-xl)*(W-20)-bw*0.3,bh=(p/maxP)*(H-30);ctx.fillStyle='#534AB7';ctx.fillRect(x,H-20-bh,bw*0.6,bh);ctx.font='9px sans-serif';ctx.fillStyle=SC();ctx.fillText(k,x+bw*0.1,H-6);});}
+    else{const xs2=Array.from({length:200},(_,i)=>xl+i*(xr-xl)/199);const maxP=Math.max(...xs2.map(x=>pdf(x)),0.01)*1.1;const sX2=x=>(x-xl)/(xr-xl),sY2=(y,H)=>H-20-(y/maxP)*(H-30);ctx.fillStyle='rgba(83,74,183,0.15)';ctx.beginPath();xs2.forEach((x,i)=>{const px=sX2(x)*W;i===0?ctx.moveTo(px,H-20):ctx.lineTo(px,sY2(pdf(x),H));});ctx.lineTo(sX2(xs2[xs2.length-1])*W,H-20);ctx.closePath();ctx.fill();ctx.strokeStyle='#534AB7';ctx.lineWidth=2;ctx.beginPath();xs2.forEach((x,i)=>{const px=sX2(x)*W,py=sY2(pdf(x),H);i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});ctx.stroke();}}
+  const r2=getCtx('c-rv-cdf',90);
+  if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-10);ctx.lineTo(W,H-10);ctx.stroke();
+    if(!discrete&&cdf){const xs2=Array.from({length:200},(_,i)=>xl+i*(xr-xl)/199);const sX2=x=>(x-xl)/(xr-xl);ctx.strokeStyle='#1D9E75';ctx.lineWidth=2;ctx.beginPath();xs2.forEach((x,i)=>{const px=sX2(x)*W,py=H-10-cdf(x)*(H-15);i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});ctx.stroke();}
+    else if(pmfPts.length){let cumP=0;pmfPts.forEach(({k,p})=>{const x=(k-xl)/(xr-xl)*W,y=H-10-cumP*(H-15);ctx.fillStyle='rgba(29,158,117,0.7)';ctx.fillRect(x-3,y,6,H-10-y);cumP+=p;});}}
+  document.getElementById('rv-mean').textContent=mean.toFixed(2);document.getElementById('rv-var').textContent=variance.toFixed(2);document.getElementById('rv-std').textContent=Math.sqrt(variance).toFixed(2);
+}
+
+function drawCLT(){
+  const distType=document.getElementById('clt_dist').value,n=+document.getElementById('clt_n').value;
+  document.getElementById('clt_nv').textContent=n;
+  function sampleOnce(){if(distType==='uniform')return Math.random();if(distType==='exponential')return -Math.log(1-Math.random());return Math.random()<0.5?randn()*0.3-1:randn()*0.3+1;}
+  const r1=getCtx('c-clt-orig',100);
+  if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);const s=Array.from({length:2000},()=>sampleOnce());const mn=Math.min(...s),mx=Math.max(...s);const bins=30,hist=new Array(bins).fill(0);s.forEach(v=>{const i=Math.min(Math.floor((v-mn)/(mx-mn)*bins),bins-1);hist[i]++;});const maxH=Math.max(...hist);hist.forEach((h,i)=>{const x=i/bins*W,bh=(h/maxH)*(H-10);ctx.fillStyle='rgba(83,74,183,0.6)';ctx.fillRect(x,H-bh,W/bins-1,bh);});}
+  const means=Array.from({length:10000},()=>{let s=0;for(let i=0;i<n;i++)s+=sampleOnce();return s/n;});
+  const mn=Math.min(...means),mx=Math.max(...means);const bins=40,hist=new Array(bins).fill(0);means.forEach(m=>{const i=Math.min(Math.floor((m-mn)/(mx-mn)*bins),bins-1);hist[i]++;});const maxH=Math.max(...hist);
+  const sMean=means.reduce((a,b)=>a+b,0)/means.length,sStd=Math.sqrt(means.reduce((a,b)=>a+(b-sMean)**2,0)/means.length);
+  const r2=getCtx('c-clt-hist',150);
+  if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);hist.forEach((h,i)=>{const x=i/bins*W,bh=(h/maxH)*(H-20);ctx.fillStyle='rgba(55,138,221,0.6)';ctx.fillRect(x+1,H-20-bh,W/bins-2,bh);});const xs=Array.from({length:100},(_,i)=>mn+i*(mx-mn)/99);const peak=(maxH/10000)*bins/(mx-mn);ctx.strokeStyle='#D85A30';ctx.lineWidth=2;ctx.beginPath();xs.forEach((x,i)=>{const norm=gpdf(x,sMean,sStd)*peak;const px=i/99*W,py=H-20-norm*(H-20);i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});ctx.stroke();ctx.font='10px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('n='+n+' 표본 평균',4,12);ctx.fillStyle='#D85A30';ctx.fillText('이론 N(μ,σ²/n)',4,24);}
+}
+
+function drawJoint(){
+  const sx=+document.getElementById('j_sx').value,sy=+document.getElementById('j_sy').value;
+  const rho=+document.getElementById('j_rho').value,nPts=+document.getElementById('j_n').value;
+  document.getElementById('j_sxv').textContent=sx.toFixed(1);document.getElementById('j_syv').textContent=sy.toFixed(1);document.getElementById('j_rhov').textContent=rho.toFixed(2);document.getElementById('j_nv').textContent=nPts;
+  const pts=Array.from({length:nPts},()=>{const z1=randn(),z2=randn();return{x:sx*z1,y:sy*(rho*z1+Math.sqrt(1-rho*rho)*z2)};});
+  const r1=getCtx('c-joint',240);
+  if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);const cx=W/2,cy=H/2,sc=Math.min(W,H)*0.38;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(W,cy);ctx.moveTo(cx,0);ctx.lineTo(cx,H);ctx.stroke();pts.forEach(p=>{const x=cx+p.x/(3)*sc,y=cy-p.y/(3)*sc;ctx.fillStyle='rgba(83,74,183,0.35)';ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill();});if(Math.abs(rho)>0.05){const covXY=pts.reduce((s,p)=>s+p.x*p.y,0)/nPts,varX=pts.reduce((s,p)=>s+p.x**2,0)/nPts,slope=covXY/varX;ctx.strokeStyle='#D85A30';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(0,cy+slope*sc);ctx.lineTo(W,cy-slope*sc);ctx.stroke();ctx.setLineDash([]);}ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText('X',cx+sc*1.05,cy+12);ctx.fillText('Y',cx+4,cy-sc*1.05);}
+  const varX=pts.reduce((s,p)=>s+p.x**2,0)/nPts,varY=pts.reduce((s,p)=>s+p.y**2,0)/nPts;
+  document.getElementById('j-rho').textContent=rho.toFixed(2);document.getElementById('j-vx').textContent=varX.toFixed(2);document.getElementById('j-vy').textContent=varY.toFixed(2);
+}
+
+function setMode(m){curMode=m;['gaussian','rv','clt','joint'].forEach((x,i)=>{document.getElementById('mode-'+x).style.display=x===m?'':'none';document.querySelectorAll('.tab')[i].className='tab'+(x===m?' active':'');});if(theoryOpen){document.getElementById('theoryPanel').innerHTML=buildHTML(m);}if(m==='gaussian')drawGaussian();if(m==='rv')drawRV();if(m==='clt')drawCLT();if(m==='joint')drawJoint();}
+drawGaussian();
+</script>
+</body>
+</html>

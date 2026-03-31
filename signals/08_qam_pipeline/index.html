@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QAM 파이프라인 — physics-sim-platform</title>
+<style>
+  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.12);--text:#1a1a1a;--text2:#666;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.12);--text:#e8e8e8;--text2:#999;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
+  nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+  nav a{font-size:13px;color:var(--text2);text-decoration:none;}nav a:hover{color:var(--text);}
+  .sep{color:var(--border);}.cur{color:var(--text);font-weight:500;}
+  .container{max-width:860px;margin:0 auto;padding:24px 16px;}
+  h1{font-size:22px;font-weight:500;margin-bottom:4px;}.subtitle{font-size:14px;color:var(--text2);margin-bottom:24px;}
+  .panel{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .ptx{border-left:3px solid #378ADD;}.pch{border-left:3px solid #BA7517;}.prx{border-left:3px solid #1D9E75;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+  .lbl{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+  .sl{font-size:12px;font-weight:500;padding:3px 10px;border-radius:8px;margin-bottom:10px;display:inline-block;}
+  .sl-tx{background:#E6F1FB;color:#185FA5;}.sl-ch{background:#FAEEDA;color:#854F0B;}.sl-rx{background:#EAF3DE;color:#3B6D11;}
+  @media(prefers-color-scheme:dark){.sl-tx{background:#0c2a40;color:#5aabf0;}.sl-ch{background:#3a2a00;color:#e8a832;}.sl-rx{background:#1a2e1a;color:#6dbc6d;};}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .row label{font-size:13px;color:var(--text2);width:110px;flex-shrink:0;}
+  .row input[type=range]{flex:1;accent-color:#534AB7;}.row select{flex:1;font-size:13px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);}
+  .val{font-size:13px;font-weight:500;min-width:56px;text-align:right;}
+  canvas{width:100%;display:block;}
+  .metric-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+  .metric{background:var(--bg2);border-radius:8px;padding:8px 10px;}.m-label{font-size:11px;color:var(--text2);}.m-val{font-size:14px;font-weight:500;margin-top:2px;}
+  .good{color:#1D9E75;}.bad{color:#D85A30;}
+  .bit-stream{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:6px;}
+  .bit{font-family:monospace;font-size:11px;padding:2px 6px;border-radius:3px;font-weight:500;color:white;}
+  .note{font-size:12px;color:var(--text2);padding:8px 12px;background:var(--bg2);border-radius:8px;line-height:1.6;margin-top:8px;}
+  .step-row{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12px;color:var(--text2);}
+  .step-num{width:20px;height:20px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;border:1px solid var(--border);}
+</style>
+</head>
+<body>
+<nav>
+  <a href="../../index.html">physics-sim-platform</a><span class="sep">/</span>
+  <a href="../index.html">signals</a><span class="sep">/</span>
+  <span class="cur">08 QAM 16/64 파이프라인</span>
+</nav>
+<div class="container">
+  <h1>QAM 16/64 전체 복조 파이프라인</h1>
+  <p class="subtitle">Gray 코딩 → I/Q 변조 → AWGN 채널 → 코히런트 복조 → AGC → 성상도 → BER</p>
+
+  <div class="panel" style="margin-bottom:12px;">
+    <div class="lbl">복조 파이프라인</div>
+    <div class="step-row"><div class="step-num">1</div>비트열 → Gray 코딩 → I/Q 레벨 매핑 → 변조 신호 s(t)</div>
+    <div class="step-row"><div class="step-num">2</div>채널: AWGN 노이즈 + 위상 오프셋 + 진폭 감쇠 → r(t)</div>
+    <div class="step-row"><div class="step-num">3</div>r(t) × 2cos(2πfc·t+φ̂) → I,  r(t) × −2sin → Q  (코히런트 복조)</div>
+    <div class="step-row"><div class="step-num">4</div>적분+덤프 (Integrate & Dump) → 심볼당 I/Q 샘플</div>
+    <div class="step-row"><div class="step-num">5</div>AGC 진폭 보정 → 최소 거리 판정 → 비트 복원 → BER</div>
+  </div>
+
+  <div class="grid3">
+    <div class="panel ptx"><div class="sl sl-tx">송신단 TX</div>
+      <div class="row"><label>변조 차수</label><select id="qam_order" onchange="runQAM()"><option value="4">4-QAM</option><option value="16" selected>16-QAM</option><option value="64">64-QAM</option></select></div>
+      <div class="row"><label>심볼율 Rs</label><input type="range" min="1" max="3" value="1" step="1" id="qam_rs" oninput="runQAM()"><span class="val" id="qam_rsv">1 sym/s</span></div>
+      <div class="row"><label>반송파 fc</label><input type="range" min="4" max="20" value="8" step="1" id="qam_fc" oninput="runQAM()"><span class="val" id="qam_fcv">8 Hz</span></div>
+    </div>
+    <div class="panel pch"><div class="sl sl-ch">채널 CH</div>
+      <div class="row"><label>Eb/N0 (dB)</label><input type="range" min="-2" max="20" value="10" step="0.5" id="qam_snr" oninput="runQAM()"><span class="val" id="qam_snrv">10.0 dB</span></div>
+      <div class="row"><label>위상 오프셋</label><input type="range" min="0" max="20" value="0" step="1" id="qam_phase" oninput="runQAM()"><span class="val" id="qam_phasev">0°</span></div>
+      <div class="row"><label>진폭 감쇠</label><input type="range" min="0.3" max="1" value="1" step="0.05" id="qam_att" oninput="runQAM()"><span class="val" id="qam_attv">1.00</span></div>
+    </div>
+    <div class="panel prx"><div class="sl sl-rx">수신단 RX</div>
+      <div class="row"><label>반송파 복원</label><input type="range" min="0" max="20" value="0" step="1" id="qam_cest" oninput="runQAM()"><span class="val" id="qam_cestv">0°</span></div>
+      <div class="row"><label>진폭 보정 AGC</label><input type="range" min="0.3" max="1" value="1" step="0.05" id="qam_again" oninput="runQAM()"><span class="val" id="qam_againv">1.00</span></div>
+      <div class="note" style="margin-top:4px;padding:6px 10px;">위상 오차 = 오프셋 − 복원값<br>진폭 오차 = 감쇠 / AGC 보정</div>
+    </div>
+  </div>
+
+  <div class="panel ptx"><div class="lbl"><span class="sl sl-tx">TX</span> 송신 비트 & 심볼 매핑</div>
+    <div id="qam-tx-bits" class="bit-stream"></div>
+    <div id="qam-sym-info" style="font-size:11px;color:var(--text2);margin-top:4px;"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel ptx"><div class="lbl"><span class="sl sl-tx">TX</span> I 채널 베이스밴드</div><div style="position:relative;height:80px;"><canvas id="c-tx-i"></canvas></div></div>
+    <div class="panel ptx"><div class="lbl"><span class="sl sl-tx">TX</span> Q 채널 베이스밴드</div><div style="position:relative;height:80px;"><canvas id="c-tx-q"></canvas></div></div>
+  </div>
+  <div class="panel ptx"><div class="lbl"><span class="sl sl-tx">TX</span> 변조 신호 s(t) = I·cos(2πfct) − Q·sin(2πfct)</div><div style="position:relative;height:95px;"><canvas id="c-tx"></canvas></div></div>
+  <div class="panel pch"><div class="lbl"><span class="sl sl-ch">CH</span> 수신 신호 r(t) = att·s(t+φ) + n(t)</div><div style="position:relative;height:95px;"><canvas id="c-rx-sig"></canvas></div></div>
+  <div class="grid2">
+    <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> I 채널 복조 (×2cos + LPF)</div><div style="position:relative;height:85px;"><canvas id="c-rx-i"></canvas></div></div>
+    <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> Q 채널 복조 (×−2sin + LPF)</div><div style="position:relative;height:85px;"><canvas id="c-rx-q"></canvas></div></div>
+  </div>
+  <div class="grid2">
+    <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 정합 필터 — I 채널 (적분+덤프)</div><div style="position:relative;height:110px;"><canvas id="c-mf"></canvas></div><div class="note">빨간 점 = 판정 샘플. 점선 = 판정 경계.</div></div>
+    <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 아이 다이어그램 — I 채널</div><div style="position:relative;height:110px;"><canvas id="c-eye"></canvas></div><div class="note">눈 개수 = √M−1. SNR↓이면 눈이 닫힌다.</div></div>
+  </div>
+  <div class="grid2">
+    <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 수신 성상도 (AGC 후)</div><div style="position:relative;height:210px;"><canvas id="c-const"></canvas></div></div>
+    <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> BER — 이론 vs 실측</div><div style="position:relative;height:210px;"><canvas id="c-ber"></canvas></div></div>
+  </div>
+  <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 복조 결과 비트</div>
+    <div id="qam-rx-bits" class="bit-stream"></div>
+    <div id="qam-err-info" class="note" style="margin-top:6px;"></div>
+  </div>
+  <div class="metric-row">
+    <div class="metric"><div class="m-label">Eb/N0</div><div class="m-val" id="qm1">—</div></div>
+    <div class="metric"><div class="m-label">이론 BER</div><div class="m-val" id="qm2">—</div></div>
+    <div class="metric"><div class="m-label">실측 BER</div><div class="m-val" id="qm3">—</div></div>
+    <div class="metric"><div class="m-label">오류 비트</div><div class="m-val" id="qm4">—</div></div>
+  </div>
+</div>
+<script>
+const FS=400,Ts=1/FS;
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function erfc(x){const t=1/(1+0.3275911*Math.abs(x));const p=t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))))*Math.exp(-x*x);return x>=0?p:2-p;}
+function qf(x){return 0.5*erfc(x/Math.sqrt(2));}
+const isDark=()=>window.matchMedia('(prefers-color-scheme:dark)').matches;
+const BC=()=>isDark()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';
+const SC=()=>isDark()?'#888':'#666';
+function getCtx(id,h){const el=document.getElementById(id);if(!el)return null;const dpr=window.devicePixelRatio||1;const W=el.parentElement.getBoundingClientRect().width||500;el.width=W*dpr;el.height=h*dpr;const ctx=el.getContext('2d');ctx.scale(dpr,dpr);return{ctx,W,H:h};}
+function axes(ctx,W,H){ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();}
+function drawL(ctx,sig,W,H,color,lw,sc){const s=sc||Math.max(...Array.from(sig).map(Math.abs),0.01);ctx.strokeStyle=color;ctx.lineWidth=lw||1.5;ctx.beginPath();Array.from(sig).forEach((v,i)=>{const x=i/sig.length*W,y=H/2-v/s*H*0.42;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
+
+function runQAM(){
+  const M=+document.getElementById('qam_order').value,rs=+document.getElementById('qam_rs').value,fc=+document.getElementById('qam_fc').value;
+  const snrDB=+document.getElementById('qam_snr').value,phOff=+document.getElementById('qam_phase').value*Math.PI/180;
+  const att=+document.getElementById('qam_att').value,phEst=+document.getElementById('qam_cest').value*Math.PI/180,again=+document.getElementById('qam_again').value;
+  document.getElementById('qam_rsv').textContent=rs+' sym/s';document.getElementById('qam_fcv').textContent=fc+' Hz';
+  document.getElementById('qam_snrv').textContent=snrDB.toFixed(1)+' dB';document.getElementById('qam_phasev').textContent=document.getElementById('qam_phase').value+'°';
+  document.getElementById('qam_attv').textContent=att.toFixed(2);document.getElementById('qam_cestv').textContent=document.getElementById('qam_cest').value+'°';document.getElementById('qam_againv').textContent=again.toFixed(2);
+
+  const bps=Math.log2(M),sqM=Math.sqrt(M),nSyms=16,nBits=nSyms*bps,sps=Math.round(FS/rs),total=nSyms*sps;
+  const tArr=Array.from({length:total},(_,i)=>i*Ts);
+  const levels=Array.from({length:sqM},(_,i)=>2*i-(sqM-1));
+  const norm=Math.sqrt(2*(M-1)/3);
+  const bits=Array.from({length:nBits},()=>Math.random()<0.5?1:0);
+  const symI=new Array(nSyms),symQ=new Array(nSyms);
+  for(let si=0;si<nSyms;si++){let idx=0;for(let b=0;b<bps;b++)idx=(idx<<1)|bits[si*bps+b];symI[si]=levels[idx>>Math.floor(bps/2)]/norm;symQ[si]=levels[idx&(sqM-1)]/norm;}
+  const txI=new Float32Array(total),txQ=new Float32Array(total),txSig=new Float32Array(total);
+  for(let si=0;si<nSyms;si++)for(let j=0;j<sps;j++){const i=si*sps+j,ti=tArr[i];txI[i]=symI[si];txQ[i]=symQ[si];txSig[i]=symI[si]*Math.cos(2*Math.PI*fc*ti)-symQ[si]*Math.sin(2*Math.PI*fc*ti);}
+  const EbN0=Math.pow(10,snrDB/10),nPow=1/(2*EbN0*bps);
+  const rxSig=new Float32Array(total);
+  for(let i=0;i<total;i++){const ti=tArr[i],si=Math.floor(i/sps);rxSig[i]=att*(symI[si]*Math.cos(2*Math.PI*fc*ti+phOff)-symQ[si]*Math.sin(2*Math.PI*fc*ti+phOff))+Math.sqrt(nPow)*randn();}
+  const rxI=new Float32Array(total),rxQ=new Float32Array(total);
+  for(let i=0;i<total;i++){rxI[i]=rxSig[i]*2*Math.cos(2*Math.PI*fc*tArr[i]+phEst);rxQ[i]=-rxSig[i]*2*Math.sin(2*Math.PI*fc*tArr[i]+phEst);}
+  const rxSymI=new Float32Array(nSyms),rxSymQ=new Float32Array(nSyms),mfI=new Float32Array(total);
+  for(let si=0;si<nSyms;si++){let sI=0,sQ=0;for(let j=0;j<sps;j++){sI+=rxI[si*sps+j];sQ+=rxQ[si*sps+j];mfI[si*sps+j]=sI/(j+1);}rxSymI[si]=sI/sps/again;rxSymQ[si]=sQ/sps/again;}
+  const constPts=[],rxBits=[];let errors=0;
+  for(let si=0;si<nSyms;si++){let minD=Infinity,bestI=0,bestQ=0;for(let ii=0;ii<sqM;ii++)for(let qi=0;qi<sqM;qi++){const d=(rxSymI[si]-levels[ii]/norm)**2+(rxSymQ[si]-levels[qi]/norm)**2;if(d<minD){minD=d;bestI=levels[ii]/norm;bestQ=levels[qi]/norm;}}const iIdx=Math.round((bestI*norm+(sqM-1))/2),qIdx=Math.round((bestQ*norm+(sqM-1))/2);const iBits=iIdx.toString(2).padStart(Math.floor(bps/2),'0').split('').map(Number);const qBits=qIdx.toString(2).padStart(Math.floor(bps/2),'0').split('').map(Number);rxBits.push(...iBits,...qBits);const err=rxBits.slice(-bps).some((b,j)=>b!==bits[si*bps+j]);constPts.push({x:rxSymI[si],y:rxSymQ[si],err});if(err)errors+=rxBits.slice(-bps).filter((b,j)=>b!==bits[si*bps+j]).length;}
+  errors=rxBits.slice(0,nBits).reduce((s,b,i)=>s+(b!==bits[i]?1:0),0);
+  const berMeas=errors/nBits,berTh=(4*(1-1/sqM)/Math.log2(M))*qf(Math.sqrt(3*Math.log2(M)*EbN0*2/(M-1)));
+  const COLS=['#378ADD','#1D9E75','#534AB7','#BA7517','#D85A30','#993556'];
+  document.getElementById('qam-tx-bits').innerHTML=bits.map((b,i)=>`<span class="bit" style="background:${COLS[Math.floor(i/bps)%COLS.length]}">${b}</span>`).join('');
+  document.getElementById('qam-sym-info').textContent=`${bps}비트 = 1심볼 | ${M}-QAM | 레벨: [${levels.map(l=>(l/norm).toFixed(2)).join(', ')}]`;
+  document.getElementById('qam-rx-bits').innerHTML=rxBits.slice(0,nBits).map((b,i)=>`<span class="bit" style="background:${bits[i]!==b?'#D85A30':COLS[Math.floor(i/bps)%COLS.length]}">${b}</span>`).join('');
+  const phErr=(+document.getElementById('qam_phase').value)-(+document.getElementById('qam_cest').value);
+  document.getElementById('qam-err-info').innerHTML=`오류: <strong>${errors}/${nBits}</strong> | 위상 잔류: <strong>${phErr}°</strong> | 진폭 잔류: <strong>×${(att/again).toFixed(2)}</strong>`;
+  const sc2=Math.max(...Array.from(rxSymI).map(Math.abs),...Array.from(rxSymQ).map(Math.abs),1)/0.4;
+  const ri=getCtx('c-tx-i',80);if(ri){const{ctx,W,H}=ri;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,txI,W,H,'#378ADD',1.5,sc2);}
+  const rq=getCtx('c-tx-q',80);if(rq){const{ctx,W,H}=rq;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,txQ,W,H,'#1D9E75',1.5,sc2);}
+  const rt=getCtx('c-tx',95);if(rt){const{ctx,W,H}=rt;ctx.clearRect(0,0,W,H);axes(ctx,W,H);for(let si=1;si<nSyms;si++){const x=si*sps/total*W;ctx.strokeStyle=BC();ctx.lineWidth=0.4;ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();ctx.setLineDash([]);}drawL(ctx,txSig,W,H,'#534AB7',1.5);}
+  const rr=getCtx('c-rx-sig',95);if(rr){const{ctx,W,H}=rr;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,txSig,W,H,'rgba(83,74,183,0.25)',1);drawL(ctx,rxSig,W,H,'#BA7517',1.5);}
+  const rri=getCtx('c-rx-i',85);if(rri){const{ctx,W,H}=rri;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,rxI,W,H,'#378ADD',1.2,2.5/0.42);for(let si=0;si<nSyms;si++){const x=(si*sps+sps-1)/total*W,y=H/2-rxSymI[si]/2.5*H*0.42;ctx.fillStyle='#D85A30';ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();}}
+  const rrq=getCtx('c-rx-q',85);if(rrq){const{ctx,W,H}=rrq;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,rxQ,W,H,'#1D9E75',1.2,2.5/0.42);}
+  const rmf=getCtx('c-mf',110);if(rmf){const{ctx,W,H}=rmf;ctx.clearRect(0,0,W,H);axes(ctx,W,H);for(let l=1;l<sqM;l++){const lv=(levels[l-1]+levels[l])/(2*norm);const y=H/2-lv/2.5*H*0.42;ctx.strokeStyle='rgba(212,83,48,0.3)';ctx.lineWidth=0.8;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.setLineDash([]);}drawL(ctx,mfI,W,H,'#534AB7',1.5,2.5/0.42);for(let si=0;si<nSyms;si++){const x=(si*sps+sps-1)/total*W,y=H/2-rxSymI[si]/2.5*H*0.42;ctx.fillStyle=constPts[si].err?'#D85A30':'#1D9E75';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();}}
+  const reye=getCtx('c-eye',110);if(reye){const{ctx,W,H}=reye;ctx.clearRect(0,0,W,H);axes(ctx,W,H);const eyeSpan=sps*2;for(let start=sps;start+eyeSpan<total;start+=sps){ctx.strokeStyle='rgba(55,138,221,0.18)';ctx.lineWidth=1;ctx.beginPath();for(let j=0;j<eyeSpan;j++){const v=rxI[start+j]/2.5;const x=j/eyeSpan*W,y=H/2-v*H*0.42;j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();}for(let l=1;l<sqM;l++){const lv=(levels[l-1]+levels[l])/(2*norm*2.5);const y=H/2-lv*H*0.42;ctx.strokeStyle='rgba(212,83,48,0.4)';ctx.lineWidth=0.8;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.setLineDash([]);}ctx.strokeStyle='#D85A30';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();ctx.setLineDash([]);}
+  const rconst=getCtx('c-const',210);if(rconst){const{ctx,W,H}=rconst;ctx.clearRect(0,0,W,H);const cx=W/2,cy=H/2,sc=Math.min(W,H)*0.38;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(W,cy);ctx.moveTo(cx,0);ctx.lineTo(cx,H);ctx.stroke();for(let l=1;l<sqM;l++){const v=(levels[l-1]+levels[l])/(2*norm)/1.5*sc;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(cx+v,0);ctx.lineTo(cx+v,H);ctx.moveTo(0,cy+v);ctx.lineTo(W,cy+v);ctx.stroke();ctx.setLineDash([]);}for(let ii=0;ii<sqM;ii++)for(let qi=0;qi<sqM;qi++){const x=cx+levels[ii]/norm/1.5*sc,y=cy-levels[qi]/norm/1.5*sc;ctx.strokeStyle=BC();ctx.lineWidth=0.8;ctx.beginPath();ctx.arc(x,y,M<=16?7:4,0,Math.PI*2);ctx.stroke();}constPts.forEach(p=>{const x=cx+p.x/1.5*sc,y=cy-p.y/1.5*sc;ctx.globalAlpha=0.8;ctx.fillStyle=p.err?'#D85A30':'rgba(29,158,117,0.85)';ctx.beginPath();ctx.arc(x,y,M<=16?3.5:2.5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;});ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText('I',cx+sc*1.08,cy+12);ctx.fillText('Q',cx+4,cy-sc*1.05);ctx.fillStyle='#1D9E75';ctx.fillText('● 정상',4,12);ctx.fillStyle='#D85A30';ctx.fillText('● 오류',4,24);}
+  const rber=getCtx('c-ber',210);if(rber){const{ctx,W,H}=rber;ctx.clearRect(0,0,W,H);const snrR=Array.from({length:22},(_,i)=>i-1),minBER=1e-6,maxSNR=20;ctx.strokeStyle=BC();ctx.lineWidth=0.3;[0,5,10,15,20].forEach(s=>{const x=(s/maxSNR)*(W-40)+20;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H-20);ctx.stroke();ctx.font='9px sans-serif';ctx.fillStyle=SC();ctx.fillText(s,x-5,H-5);});[[4,'#1D9E75'],[16,'#378ADD'],[64,'#534AB7']].forEach(([m,c])=>{const sqm=Math.sqrt(m),bpss=Math.log2(m);ctx.strokeStyle=c;ctx.lineWidth=m===M?2:1;ctx.setLineDash(m===M?[]:[3,3]);ctx.beginPath();let f=true;snrR.forEach(s=>{const en=Math.pow(10,s/10);const ber=Math.max((4*(1-1/sqm)/bpss)*qf(Math.sqrt(3*bpss*en*2/(m-1))),minBER);const x=(s/maxSNR)*(W-40)+20,y=(1-Math.log10(ber)/Math.log10(minBER))*(H-25)+5;f?ctx.moveTo(x,y):ctx.lineTo(x,y);f=false;});ctx.stroke();ctx.setLineDash([]);ctx.font='9px sans-serif';ctx.fillStyle=c;ctx.fillText(m+'-QAM',W-55,m===4?H-50:m===16?H-65:H-80);});const cx=(snrDB/maxSNR)*(W-40)+20,thY=(1-Math.log10(Math.max(berTh,minBER))/Math.log10(minBER))*(H-25)+5;ctx.fillStyle='#D85A30';ctx.beginPath();ctx.arc(cx,thY,5,0,Math.PI*2);ctx.fill();if(berMeas>0){const mY=(1-Math.log10(Math.max(berMeas,minBER))/Math.log10(minBER))*(H-25)+5;ctx.fillStyle='#1D9E75';ctx.beginPath();ctx.arc(cx,mY,4,0,Math.PI*2);ctx.fill();}ctx.font='9px sans-serif';ctx.fillStyle='#D85A30';ctx.fillText('▶이론점',4,H-20);ctx.fillStyle='#1D9E75';ctx.fillText('●실측',4,H-10);ctx.fillStyle=SC();ctx.fillText('Eb/N0 (dB)',W/2-20,H);}
+  document.getElementById('qm1').textContent=snrDB.toFixed(1)+' dB';document.getElementById('qm2').textContent=berTh<1e-4?berTh.toExponential(2):berTh.toFixed(4);document.getElementById('qm3').innerHTML=`<span class="${berMeas>berTh*3?'bad':'good'}">${berMeas.toFixed(3)}</span>`;document.getElementById('qm4').innerHTML=`<span class="${errors>0?'bad':'good'}">${errors}개</span>`;
+}
+runQAM();
+</script>
+</body>
+</html>

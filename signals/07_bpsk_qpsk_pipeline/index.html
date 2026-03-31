@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BPSK/QPSK 파이프라인 — physics-sim-platform</title>
+<style>
+  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.12);--text:#1a1a1a;--text2:#666;--info-bg:#E6F1FB;--info:#185FA5;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.12);--text:#e8e8e8;--text2:#999;--info-bg:#0c2a40;--info:#5aabf0;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
+  nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+  nav a{font-size:13px;color:var(--text2);text-decoration:none;}nav a:hover{color:var(--text);}
+  .sep{color:var(--border);}.cur{color:var(--text);font-weight:500;}
+  .container{max-width:860px;margin:0 auto;padding:24px 16px;}
+  h1{font-size:22px;font-weight:500;margin-bottom:4px;}.subtitle{font-size:14px;color:var(--text2);margin-bottom:24px;}
+  .panel{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .ptx{border-left:3px solid #378ADD;}.pch{border-left:3px solid #BA7517;}.prx{border-left:3px solid #1D9E75;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+  .lbl{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+  .sl{font-size:12px;font-weight:500;padding:3px 10px;border-radius:8px;margin-bottom:10px;display:inline-block;}
+  .sl-tx{background:var(--info-bg);color:var(--info);}
+  .sl-ch{background:#FAEEDA;color:#854F0B;}
+  .sl-rx{background:#EAF3DE;color:#3B6D11;}
+  @media(prefers-color-scheme:dark){.sl-ch{background:#3a2a00;color:#e8a832;}.sl-rx{background:#1a2e1a;color:#6dbc6d;};}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .row label{font-size:13px;color:var(--text2);width:100px;flex-shrink:0;}
+  .row input[type=range]{flex:1;accent-color:#534AB7;}
+  .val{font-size:13px;font-weight:500;min-width:56px;text-align:right;}
+  canvas{width:100%;display:block;}
+  .tab-bar{display:flex;gap:6px;margin-bottom:12px;}
+  .tab{font-size:12px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;}
+  .tab.active{background:var(--bg2);color:var(--text);font-weight:500;}
+  .metric-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+  .metric{background:var(--bg2);border-radius:8px;padding:8px 10px;}
+  .m-label{font-size:11px;color:var(--text2);}.m-val{font-size:14px;font-weight:500;margin-top:2px;}
+  .good{color:#1D9E75;}.bad{color:#D85A30;}
+  .bit-stream{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:6px;}
+  .bit{font-family:monospace;font-size:11px;padding:2px 6px;border-radius:3px;font-weight:500;color:white;}
+  .note{font-size:12px;color:var(--text2);padding:8px 12px;background:var(--bg2);border-radius:8px;line-height:1.6;margin-top:8px;}
+  .err-bit{background:#D85A30!important;}.ok-bit{background:#1D9E75!important;}
+</style>
+</head>
+<body>
+<nav>
+  <a href="../../index.html">physics-sim-platform</a><span class="sep">/</span>
+  <a href="../index.html">signals</a><span class="sep">/</span>
+  <span class="cur">07 BPSK/QPSK 파이프라인</span>
+</nav>
+<div class="container">
+  <h1>BPSK / QPSK 전체 복조 파이프라인</h1>
+  <p class="subtitle">송신 → AWGN 채널 → 정합 필터 → 아이 다이어그램 → 심볼 판정 → BER</p>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="setMode('bpsk')">BPSK</button>
+    <button class="tab" onclick="setMode('qpsk')">QPSK</button>
+  </div>
+
+  <!-- BPSK -->
+  <div id="mode-bpsk">
+    <div class="grid3">
+      <div class="panel ptx"><div class="sl sl-tx">송신단 TX</div>
+        <div class="row"><label>반송파 fc</label><input type="range" min="5" max="25" value="10" step="1" id="b_fc" oninput="runBPSK()"><span class="val" id="b_fcv">10 Hz</span></div>
+        <div class="row"><label>비트율 Rb</label><input type="range" min="1" max="4" value="2" step="1" id="b_rb" oninput="runBPSK()"><span class="val" id="b_rbv">2 bps</span></div>
+      </div>
+      <div class="panel pch"><div class="sl sl-ch">채널 CH</div>
+        <div class="row"><label>Eb/N0 (dB)</label><input type="range" min="-2" max="14" value="6" step="0.5" id="b_snr" oninput="runBPSK()"><span class="val" id="b_snrv">6.0 dB</span></div>
+        <div class="row"><label>위상 오프셋</label><input type="range" min="0" max="30" value="0" step="1" id="b_phase" oninput="runBPSK()"><span class="val" id="b_phasev">0°</span></div>
+      </div>
+      <div class="panel prx"><div class="sl sl-rx">수신단 RX</div>
+        <div class="row"><label>반송파 복원</label><input type="range" min="0" max="30" value="0" step="1" id="b_cest" oninput="runBPSK()"><span class="val" id="b_cestv">0°</span></div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6;">위상 오프셋 ≠ 복원값이면<br>동기화 실패 → BER 급증</div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">송신 비트 (20비트)</div><div id="b-tx-bits" class="bit-stream"></div></div>
+    <div class="panel ptx"><div class="lbl"><span class="sl sl-tx">TX</span> 변조 신호 s(t) = ±cos(2πfct)</div><div style="position:relative;height:110px;"><canvas id="c-b-tx"></canvas></div></div>
+    <div class="panel pch"><div class="lbl"><span class="sl sl-ch">CH</span> 수신 신호 r(t) = s(t) + n(t)</div><div style="position:relative;height:110px;"><canvas id="c-b-rx-sig"></canvas></div></div>
+    <div class="grid2">
+      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 정합 필터 출력</div><div style="position:relative;height:120px;"><canvas id="c-b-mf"></canvas></div><div class="note">판정점(●): 초록=정상, 빨강=오류. 0 기준으로 판정.</div></div>
+      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 아이 다이어그램</div><div style="position:relative;height:120px;"><canvas id="c-b-eye"></canvas></div><div class="note">눈이 열릴수록 판정 여유↑. SNR↓ 또는 위상오차↑이면 눈이 닫힌다.</div></div>
+    </div>
+    <div class="grid2">
+      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 복조 결과</div><div id="b-rx-bits" class="bit-stream"></div><div id="b-err-info" class="note"></div></div>
+      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> BER 곡선</div><div style="position:relative;height:120px;"><canvas id="c-b-ber"></canvas></div></div>
+    </div>
+    <div class="metric-row">
+      <div class="metric"><div class="m-label">Eb/N0</div><div class="m-val" id="b-m1">—</div></div>
+      <div class="metric"><div class="m-label">이론 BER</div><div class="m-val" id="b-m2">—</div></div>
+      <div class="metric"><div class="m-label">실측 BER</div><div class="m-val" id="b-m3">—</div></div>
+      <div class="metric"><div class="m-label">오류 비트</div><div class="m-val" id="b-m4">—</div></div>
+    </div>
+  </div>
+
+  <!-- QPSK -->
+  <div id="mode-qpsk" style="display:none;">
+    <div class="grid3">
+      <div class="panel ptx"><div class="sl sl-tx">송신단 TX</div>
+        <div class="row"><label>반송파 fc</label><input type="range" min="5" max="25" value="10" step="1" id="q_fc" oninput="runQPSK()"><span class="val" id="q_fcv">10 Hz</span></div>
+        <div class="row"><label>심볼율 Rs</label><input type="range" min="1" max="3" value="2" step="1" id="q_rs" oninput="runQPSK()"><span class="val" id="q_rsv">2 sym/s</span></div>
+      </div>
+      <div class="panel pch"><div class="sl sl-ch">채널 CH</div>
+        <div class="row"><label>Eb/N0 (dB)</label><input type="range" min="-2" max="14" value="6" step="0.5" id="q_snr" oninput="runQPSK()"><span class="val" id="q_snrv">6.0 dB</span></div>
+        <div class="row"><label>위상 오프셋</label><input type="range" min="0" max="30" value="0" step="1" id="q_phase" oninput="runQPSK()"><span class="val" id="q_phasev">0°</span></div>
+      </div>
+      <div class="panel prx"><div class="sl sl-rx">수신단 RX</div>
+        <div class="row"><label>반송파 복원</label><input type="range" min="0" max="30" value="0" step="1" id="q_cest" oninput="runQPSK()"><span class="val" id="q_cestv">0°</span></div>
+        <div style="font-size:12px;color:var(--text2);">I/Q 두 채널 동시 복조</div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">비트 스트림 (2비트=1심볼)</div><div id="q-tx-bits" class="bit-stream"></div></div>
+    <div class="grid2">
+      <div class="panel ptx"><div class="lbl"><span class="sl sl-tx">TX</span> I 채널</div><div style="position:relative;height:90px;"><canvas id="c-q-tx-i"></canvas></div></div>
+      <div class="panel ptx"><div class="lbl"><span class="sl sl-tx">TX</span> Q 채널</div><div style="position:relative;height:90px;"><canvas id="c-q-tx-q"></canvas></div></div>
+    </div>
+    <div class="panel ptx"><div class="lbl"><span class="sl sl-tx">TX</span> QPSK 변조 신호</div><div style="position:relative;height:100px;"><canvas id="c-q-tx"></canvas></div></div>
+    <div class="panel pch"><div class="lbl"><span class="sl sl-ch">CH</span> 수신 신호</div><div style="position:relative;height:100px;"><canvas id="c-q-rx-sig"></canvas></div></div>
+    <div class="grid2">
+      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> I 복조</div><div style="position:relative;height:100px;"><canvas id="c-q-rx-i"></canvas></div></div>
+      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> Q 복조</div><div style="position:relative;height:100px;"><canvas id="c-q-rx-q"></canvas></div></div>
+    </div>
+    <div class="grid2">
+      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 성상도</div><div style="position:relative;height:180px;"><canvas id="c-q-const"></canvas></div></div>
+      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 아이 다이어그램</div><div style="position:relative;height:180px;"><canvas id="c-q-eye"></canvas></div></div>
+    </div>
+    <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 복조 결과</div><div id="q-rx-bits" class="bit-stream"></div><div id="q-err-info" class="note"></div></div>
+    <div class="metric-row">
+      <div class="metric"><div class="m-label">Eb/N0</div><div class="m-val" id="q-m1">—</div></div>
+      <div class="metric"><div class="m-label">이론 BER</div><div class="m-val" id="q-m2">—</div></div>
+      <div class="metric"><div class="m-label">실측 BER</div><div class="m-val" id="q-m3">—</div></div>
+      <div class="metric"><div class="m-label">오류 비트</div><div class="m-val" id="q-m4">—</div></div>
+    </div>
+  </div>
+</div>
+<script>
+const FS=500,Ts=1/FS;
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function erfc(x){const t=1/(1+0.3275911*Math.abs(x));const poly=t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))))*Math.exp(-x*x);return x>=0?poly:2-poly;}
+function qf(x){return 0.5*erfc(x/Math.sqrt(2));}
+const isDark=()=>window.matchMedia('(prefers-color-scheme:dark)').matches;
+const BC=()=>isDark()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';
+const SC=()=>isDark()?'#888':'#888';
+const TC=()=>isDark()?'#e8e8e8':'#1a1a1a';
+function getCtx(id,h){const el=document.getElementById(id);if(!el)return null;const dpr=window.devicePixelRatio||1;const W=el.parentElement.getBoundingClientRect().width||500;el.width=W*dpr;el.height=h*dpr;const ctx=el.getContext('2d');ctx.scale(dpr,dpr);return{ctx,W,H:h};}
+function axes(ctx,W,H){ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();}
+function drawL(ctx,sig,W,H,color,lw,sc){const s=sc||Math.max(...Array.from(sig).map(Math.abs),0.01);ctx.strokeStyle=color;ctx.lineWidth=lw||1.5;ctx.beginPath();Array.from(sig).forEach((v,i)=>{const x=i/sig.length*W,y=H/2-v/s*H*0.42;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
+
+const NBITS=20;
+function runBPSK(){
+  const fc=+document.getElementById('b_fc').value,rb=+document.getElementById('b_rb').value;
+  const snrDB=+document.getElementById('b_snr').value,phOff=+document.getElementById('b_phase').value*Math.PI/180;
+  const phEst=+document.getElementById('b_cest').value*Math.PI/180;
+  document.getElementById('b_fcv').textContent=fc+' Hz';document.getElementById('b_rbv').textContent=rb+' bps';
+  document.getElementById('b_snrv').textContent=snrDB.toFixed(1)+' dB';document.getElementById('b_phasev').textContent=document.getElementById('b_phase').value+'°';document.getElementById('b_cestv').textContent=document.getElementById('b_cest').value+'°';
+  const bits=Array.from({length:NBITS},()=>Math.random()<0.5?1:0);
+  const spb=Math.round(FS/rb),total=NBITS*spb;
+  const tArr=Array.from({length:total},(_,i)=>i*Ts);
+  const txSig=new Float32Array(total);
+  bits.forEach((b,bi)=>{const ph=b?0:Math.PI;for(let j=0;j<spb;j++){const i=bi*spb+j;txSig[i]=Math.cos(2*Math.PI*fc*tArr[i]+ph);}});
+  const EbN0=Math.pow(10,snrDB/10),nPow=1/(2*EbN0*rb/FS);
+  const rxSig=new Float32Array(total);
+  for(let i=0;i<total;i++) rxSig[i]=txSig[i]+Math.sqrt(nPow)*randn();
+  const rxPhased=new Float32Array(total);
+  for(let i=0;i<total;i++) rxPhased[i]=rxSig[i];
+  const mfSig=new Float32Array(total),mfOut=new Float32Array(NBITS);
+  bits.forEach((_,bi)=>{let sum=0;for(let j=0;j<spb;j++){const i=bi*spb+j;const ref=Math.cos(2*Math.PI*fc*tArr[i]+phEst);sum+=rxPhased[i]*ref;mfSig[i]=sum/(j+1);}mfOut[bi]=sum/spb;});
+  const rxBits=Array.from(mfOut).map(v=>v>0?1:0);
+  const errors=bits.reduce((s,b,i)=>s+(b!==rxBits[i]?1:0),0);
+  const berMeas=errors/NBITS,berTh=qf(Math.sqrt(2*EbN0));
+  const COLS=['#1D9E75','#378ADD'];
+  document.getElementById('b-tx-bits').innerHTML=bits.map(b=>`<span class="bit" style="background:${COLS[b]}">${b}</span>`).join('');
+  document.getElementById('b-rx-bits').innerHTML=rxBits.map((b,i)=>`<span class="bit ${bits[i]!==b?'err-bit':'ok-bit'}">${b}</span>`).join('');
+  document.getElementById('b-err-info').innerHTML=`오류: <strong>${errors}/${NBITS}</strong> | 위상 잔류 오차: ${(+document.getElementById('b_phase').value-+document.getElementById('b_cest').value)}°`;
+  const r1=getCtx('c-b-tx',110);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);bits.forEach((_,i)=>{if(i>0){const x=i*spb/total*W;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();ctx.setLineDash([]);}});bits.forEach((b,i)=>{ctx.font='10px sans-serif';ctx.fillStyle=COLS[b];ctx.fillText(b,(i*spb+spb/2)/total*W-3,10);});drawL(ctx,txSig,W,H,'#378ADD',1.5);}
+  const r2=getCtx('c-b-rx-sig',110);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,txSig,W,H,'rgba(55,138,221,0.3)',1);drawL(ctx,rxPhased,W,H,'#BA7517',1.5);ctx.font='10px sans-serif';ctx.fillStyle='rgba(55,138,221,0.7)';ctx.fillText('s(t)',4,12);ctx.fillStyle='#BA7517';ctx.fillText('r(t)',4,24);}
+  const r3=getCtx('c-b-mf',120);if(r3){const{ctx,W,H}=r3;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,mfSig,W,H,'#534AB7',1.5);bits.forEach((_,bi)=>{const i=(bi+1)*spb-1;const x=i/total*W,v=mfSig[i];const y=H/2-v/Math.max(...Array.from(mfSig).map(Math.abs),0.01)*H*0.42;ctx.fillStyle=rxBits[bi]===bits[bi]?'#1D9E75':'#D85A30';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();});}
+  const r4=getCtx('c-b-eye',120);if(r4){const{ctx,W,H}=r4;ctx.clearRect(0,0,W,H);axes(ctx,W,H);const eyeSpan=spb*2;for(let start=spb;start+eyeSpan<total;start+=spb){ctx.strokeStyle='rgba(83,74,183,0.25)';ctx.lineWidth=1;ctx.beginPath();for(let j=0;j<eyeSpan;j++){const v=rxPhased[start+j];const x=j/eyeSpan*W,y=H/2-v*H*0.38;j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();}ctx.strokeStyle='#D85A30';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();ctx.setLineDash([]);}
+  const r5=getCtx('c-b-ber',120);if(r5){const{ctx,W,H}=r5;ctx.clearRect(0,0,W,H);const snrR=Array.from({length:16},(_,i)=>i),minBER=1e-5,maxSNR=15;ctx.strokeStyle=BC();ctx.lineWidth=0.3;[0,4,8,12].forEach(s=>{const x=(s/maxSNR)*(W-30)+15;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H-15);ctx.stroke();ctx.font='9px sans-serif';ctx.fillStyle=SC();ctx.fillText(s,x-4,H-3);});ctx.strokeStyle='#378ADD';ctx.lineWidth=2;ctx.beginPath();let f=true;snrR.forEach(s=>{const ber=Math.max(qf(Math.sqrt(2*Math.pow(10,s/10))),minBER),x=(s/maxSNR)*(W-30)+15,y=(1-Math.log10(ber)/Math.log10(minBER))*(H-20)+5;f?ctx.moveTo(x,y):ctx.lineTo(x,y);f=false;});ctx.stroke();const cx=(snrDB/maxSNR)*(W-30)+15,cy=(1-Math.log10(Math.max(berTh,minBER))/Math.log10(minBER))*(H-20)+5;ctx.fillStyle='#D85A30';ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fill();if(berMeas>0){const my=(1-Math.log10(Math.max(berMeas,minBER))/Math.log10(minBER))*(H-20)+5;ctx.fillStyle='#1D9E75';ctx.beginPath();ctx.arc(cx,my,4,0,Math.PI*2);ctx.fill();}}
+  document.getElementById('b-m1').textContent=snrDB.toFixed(1)+' dB';document.getElementById('b-m2').textContent=berTh<1e-4?berTh.toExponential(2):berTh.toFixed(4);document.getElementById('b-m3').textContent=berMeas.toFixed(3);document.getElementById('b-m4').innerHTML=`<span class="${errors>0?'bad':'good'}">${errors}개</span>`;
+}
+
+const QBITS=24;
+function runQPSK(){
+  const fc=+document.getElementById('q_fc').value,rs=+document.getElementById('q_rs').value;
+  const snrDB=+document.getElementById('q_snr').value,phOff=+document.getElementById('q_phase').value*Math.PI/180;
+  const phEst=+document.getElementById('q_cest').value*Math.PI/180;
+  document.getElementById('q_fcv').textContent=fc+' Hz';document.getElementById('q_rsv').textContent=rs+' sym/s';
+  document.getElementById('q_snrv').textContent=snrDB.toFixed(1)+' dB';document.getElementById('q_phasev').textContent=document.getElementById('q_phase').value+'°';document.getElementById('q_cestv').textContent=document.getElementById('q_cest').value+'°';
+  const bits=Array.from({length:QBITS},()=>Math.random()<0.5?1:0);
+  const nSyms=QBITS/2,sps=Math.round(FS/rs),total=nSyms*sps;
+  const tArr=Array.from({length:total},(_,i)=>i*Ts);
+  const phMap={0:Math.PI/4,1:3*Math.PI/4,2:5*Math.PI/4,3:7*Math.PI/4};
+  const symPh=Array.from({length:nSyms},(_,si)=>phMap[(bits[2*si]<<1)|bits[2*si+1]]);
+  const txI=new Float32Array(total),txQ=new Float32Array(total),txSig=new Float32Array(total);
+  symPh.forEach((ph,si)=>{for(let j=0;j<sps;j++){const i=si*sps+j,ti=tArr[i];txI[i]=Math.cos(ph);txQ[i]=Math.sin(ph);txSig[i]=Math.cos(ph)*Math.cos(2*Math.PI*fc*ti)-Math.sin(ph)*Math.sin(2*Math.PI*fc*ti);}});
+  const EbN0=Math.pow(10,snrDB/10),nPow=1/(2*EbN0*(2*rs)/FS);
+  const rxSig=new Float32Array(total);
+  for(let i=0;i<total;i++) rxSig[i]=txSig[i]*Math.cos(phOff)+Math.sqrt(nPow)*randn();
+  const rxI=new Float32Array(total),rxQ=new Float32Array(total);
+  for(let i=0;i<total;i++){rxI[i]=rxSig[i]*2*Math.cos(2*Math.PI*fc*tArr[i]+phEst);rxQ[i]=-rxSig[i]*2*Math.sin(2*Math.PI*fc*tArr[i]+phEst);}
+  const constPts=[],rxBits=[];
+  symPh.forEach((_,si)=>{let sI=0,sQ=0;for(let j=0;j<sps;j++){sI+=rxI[si*sps+j];sQ+=rxQ[si*sps+j];}sI/=sps;sQ/=sps;constPts.push({x:sI,y:sQ});const ph=Math.atan2(sQ,sI);let minD=Infinity,best=0;[0,1,2,3].forEach(k=>{const d=Math.abs(((ph-phMap[k]+3*Math.PI)%(2*Math.PI))-Math.PI);if(d<minD){minD=d;best=k;}});rxBits.push((best>>1)&1,best&1);});
+  const errors=rxBits.reduce((s,b,i)=>s+(b!==bits[i]?1:0),0);
+  const berMeas=errors/QBITS,berTh=qf(Math.sqrt(2*Math.pow(10,snrDB/10)));
+  const COLS=['#378ADD','#1D9E75','#534AB7','#BA7517','#D85A30','#993556'];
+  document.getElementById('q-tx-bits').innerHTML=bits.map((b,i)=>`<span class="bit" style="background:${COLS[Math.floor(i/2)%COLS.length]}">${b}</span>`).join('');
+  document.getElementById('q-rx-bits').innerHTML=rxBits.map((b,i)=>`<span class="bit ${bits[i]!==b?'err-bit':'ok-bit'}">${b}</span>`).join('');
+  document.getElementById('q-err-info').innerHTML=`오류: <strong>${errors}/${QBITS}</strong> | 위상 잔류 오차: ${(+document.getElementById('q_phase').value-+document.getElementById('q_cest').value)}°`;
+  const ri=getCtx('c-q-tx-i',90);if(ri){const{ctx,W,H}=ri;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,txI,W,H,'#378ADD',1.5,1/0.42);}
+  const rq=getCtx('c-q-tx-q',90);if(rq){const{ctx,W,H}=rq;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,txQ,W,H,'#1D9E75',1.5,1/0.42);}
+  const rt=getCtx('c-q-tx',100);if(rt){const{ctx,W,H}=rt;ctx.clearRect(0,0,W,H);axes(ctx,W,H);for(let si=1;si<nSyms;si++){const x=si*sps/total*W;ctx.strokeStyle=BC();ctx.lineWidth=0.4;ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();ctx.setLineDash([]);}drawL(ctx,txSig,W,H,'#534AB7',1.5);}
+  const rr=getCtx('c-q-rx-sig',100);if(rr){const{ctx,W,H}=rr;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,txSig,W,H,'rgba(83,74,183,0.25)',1);drawL(ctx,rxSig,W,H,'#BA7517',1.5);}
+  const rri=getCtx('c-q-rx-i',100);if(rri){const{ctx,W,H}=rri;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,rxI,W,H,'#378ADD',1.2,2.5/0.42);symPh.forEach((_,si)=>{const x=(si*sps+sps-1)/total*W;const sI=rxI.slice(si*sps,si*sps+sps).reduce((a,b)=>a+b,0)/sps;const y=H/2-sI/2.5*H*0.42;ctx.fillStyle='#D85A30';ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();});}
+  const rrq=getCtx('c-q-rx-q',100);if(rrq){const{ctx,W,H}=rrq;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,rxQ,W,H,'#1D9E75',1.2,2.5/0.42);}
+  const rc=getCtx('c-q-const',180);if(rc){const{ctx,W,H}=rc;ctx.clearRect(0,0,W,H);const cx=W/2,cy=H/2,sc=Math.min(W,H)*0.38;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(cx-sc*1.2,cy);ctx.lineTo(cx+sc*1.2,cy);ctx.moveTo(cx,cy-sc*1.2);ctx.lineTo(cx,cy+sc*1.2);ctx.stroke();ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,H);ctx.moveTo(0,cy);ctx.lineTo(W,cy);ctx.stroke();ctx.setLineDash([]);[0,1,2,3].forEach(k=>{const ph=phMap[k],x=cx+Math.cos(ph)*sc,y=cy-Math.sin(ph)*sc;ctx.strokeStyle=BC();ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,8,0,Math.PI*2);ctx.stroke();});constPts.forEach((p,si)=>{const err=rxBits[2*si]!==bits[2*si]||rxBits[2*si+1]!==bits[2*si+1];const x=cx+p.x/1.5*sc,y=cy-p.y/1.5*sc;ctx.fillStyle=err?'#D85A30':'rgba(29,158,117,0.7)';ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();});ctx.font='10px sans-serif';ctx.fillStyle=BC();ctx.fillText('I',cx+sc*1.05,cy+12);ctx.fillText('Q',cx+4,cy-sc*1.05);}
+  const re=getCtx('c-q-eye',180);if(re){const{ctx,W,H}=re;ctx.clearRect(0,0,W,H);axes(ctx,W,H);const eyeSpan=sps*2;for(let start=sps;start+eyeSpan<total;start+=sps){ctx.strokeStyle='rgba(55,138,221,0.2)';ctx.lineWidth=1;ctx.beginPath();for(let j=0;j<eyeSpan;j++){const v=rxI[start+j]/2.5;const x=j/eyeSpan*W,y=H/2-v*H*0.42;j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();}ctx.strokeStyle='#D85A30';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();ctx.setLineDash([]);}
+  document.getElementById('q-m1').textContent=snrDB.toFixed(1)+' dB';document.getElementById('q-m2').textContent=berTh<1e-4?berTh.toExponential(2):berTh.toFixed(4);document.getElementById('q-m3').textContent=berMeas.toFixed(3);document.getElementById('q-m4').innerHTML=`<span class="${errors>0?'bad':'good'}">${errors}개</span>`;
+}
+
+function setMode(m){['bpsk','qpsk'].forEach((x,i)=>{document.getElementById('mode-'+x).style.display=x===m?'':'none';document.querySelectorAll('.tab')[i].className='tab'+(x===m?' active':'');});if(m==='bpsk')runBPSK();else runQPSK();}
+runBPSK();
+</script>
+</body>
+</html>
