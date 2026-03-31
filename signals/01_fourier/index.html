@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>푸리에 변환 시뮬레이터</title>
+<style>
+  :root { --bg: #ffffff; --bg2: #f5f5f3; --border: rgba(0,0,0,0.12); --text: #1a1a1a; --text2: #666; --blue: #378ADD; --green: #1D9E75; --purple: #534AB7; --amber: #BA7517; --red: #D85A30; --info-bg: #E6F1FB; --info: #185FA5; }
+  @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.12);--text:#e8e8e8;--text2:#999;--info-bg:#0c2a40;--info:#5aabf0;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding:0;}
+  nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:16px;}
+  nav a{font-size:13px;color:var(--text2);text-decoration:none;}
+  nav a:hover{color:var(--text);}
+  nav .sep{color:var(--border);}
+  nav .cur{color:var(--text);font-weight:500;}
+  .container{max-width:860px;margin:0 auto;padding:24px 16px;}
+  h1{font-size:22px;font-weight:500;margin-bottom:4px;}
+  .subtitle{font-size:14px;color:var(--text2);margin-bottom:24px;}
+  .panel{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .lbl{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .row label{font-size:13px;color:var(--text2);width:72px;flex-shrink:0;}
+  .row input[type=range]{flex:1;accent-color:var(--purple);}
+  .val{font-size:13px;font-weight:500;color:var(--text);min-width:44px;text-align:right;}
+  canvas{width:100%;display:block;}
+  .tab-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
+  .tab{font-size:12px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;}
+  .tab.active{background:var(--bg2);color:var(--text);border-color:rgba(0,0,0,0.2);font-weight:500;}
+  .theory-btn{font-size:12px;padding:4px 12px;border-radius:8px;border:1px solid var(--info);background:transparent;color:var(--info);cursor:pointer;font-family:inherit;margin-left:auto;}
+  .theory-btn.open{background:var(--info-bg);}
+  .theory-box{background:var(--bg2);border-radius:12px;border:1px solid var(--border);padding:16px;margin-bottom:10px;display:none;}
+  .theory-box.show{display:block;}
+  .theory-box h3{font-size:14px;font-weight:500;margin-bottom:12px;}
+  .ts{margin-bottom:14px;}
+  .ts-lbl{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+  .eq{font-family:'SF Mono',Consolas,monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);line-height:1.7;margin-bottom:5px;}
+  .tt{font-size:13px;color:var(--text2);line-height:1.7;}
+  .code-ref{font-family:'SF Mono',Consolas,monospace;font-size:12px;background:var(--bg);border-left:2px solid var(--purple);padding:8px 12px;border-radius:0 8px 8px 0;color:var(--text2);margin-top:6px;line-height:1.6;}
+  .metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+  .metric{background:var(--bg2);border-radius:8px;padding:8px 10px;}
+  .m-label{font-size:11px;color:var(--text2);}
+  .m-val{font-size:15px;font-weight:500;margin-top:2px;}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+</style>
+</head>
+<body>
+<nav>
+  <a href="../../index.html">physics-sim-platform</a>
+  <span class="sep">/</span>
+  <a href="../index.html">signals</a>
+  <span class="sep">/</span>
+  <span class="cur">01 푸리에 변환</span>
+  <a href="README.md" style="margin-left:auto;">README</a>
+</nav>
+<div class="container">
+  <h1>푸리에 변환 (Fourier Transform)</h1>
+  <p class="subtitle">파형 합성 · FFT 분석 · 구형파 분해 · 깁스 현상</p>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="setMode('sum')">파형 합성</button>
+    <button class="tab" onclick="setMode('fft')">FFT 분석</button>
+    <button class="tab" onclick="setMode('square')">구형파 분해</button>
+    <button class="theory-btn" id="theoryBtn" onclick="toggleTheory()">이론 보기</button>
+  </div>
+  <div id="theoryPanel" class="theory-box"></div>
+
+  <div id="mode-sum">
+    <div class="grid2">
+      <div class="panel">
+        <div class="lbl">성분 1</div>
+        <div class="row"><span class="dot" style="background:#378ADD"></span><label>주파수</label><input type="range" min="1" max="20" value="2" step="1" id="f1" oninput="draw()"><span class="val" id="f1v">2 Hz</span></div>
+        <div class="row"><span class="dot" style="background:#378ADD"></span><label>진폭</label><input type="range" min="0" max="10" value="5" step="0.5" id="a1" oninput="draw()"><span class="val" id="a1v">5.0</span></div>
+        <div class="row"><span class="dot" style="background:#378ADD"></span><label>위상</label><input type="range" min="0" max="360" value="0" step="5" id="p1" oninput="draw()"><span class="val" id="p1v">0°</span></div>
+      </div>
+      <div class="panel">
+        <div class="lbl">성분 2</div>
+        <div class="row"><span class="dot" style="background:#1D9E75"></span><label>주파수</label><input type="range" min="1" max="20" value="5" step="1" id="f2" oninput="draw()"><span class="val" id="f2v">5 Hz</span></div>
+        <div class="row"><span class="dot" style="background:#1D9E75"></span><label>진폭</label><input type="range" min="0" max="10" value="3" step="0.5" id="a2" oninput="draw()"><span class="val" id="a2v">3.0</span></div>
+        <div class="row"><span class="dot" style="background:#1D9E75"></span><label>위상</label><input type="range" min="0" max="360" value="0" step="5" id="p2" oninput="draw()"><span class="val" id="p2v">0°</span></div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">시간 영역</div><div style="position:relative;height:150px;"><canvas id="c-time"></canvas></div></div>
+    <div class="panel"><div class="lbl">주파수 영역</div><div style="position:relative;height:120px;"><canvas id="c-freq"></canvas></div>
+      <div class="metric-row">
+        <div class="metric"><div class="m-label">성분 1</div><div class="m-val" id="m1">—</div></div>
+        <div class="metric"><div class="m-label">성분 2</div><div class="m-val" id="m2">—</div></div>
+        <div class="metric"><div class="m-label">위상차</div><div class="m-val" id="mdp">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mode-fft" style="display:none;">
+    <div class="panel">
+      <div class="lbl">파라미터</div>
+      <div class="row"><label>노이즈</label><input type="range" min="0" max="5" value="1" step="0.1" id="noise" oninput="drawFFT()"><span class="val" id="noisev">1.0</span></div>
+      <div class="row"><label>숨겨진 주파수</label><input type="range" min="1" max="30" value="7" step="1" id="hf" oninput="drawFFT()"><span class="val" id="hfv">7 Hz</span></div>
+    </div>
+    <div class="panel"><div class="lbl">노이즈 섞인 신호</div><div style="position:relative;height:130px;"><canvas id="c-noisy"></canvas></div></div>
+    <div class="panel"><div class="lbl">FFT → 주파수 검출</div><div style="position:relative;height:130px;"><canvas id="c-fft"></canvas></div></div>
+  </div>
+
+  <div id="mode-square" style="display:none;">
+    <div class="panel"><div class="lbl">고조파 항 수 N</div>
+      <div class="row"><label>항 수</label><input type="range" min="1" max="25" value="3" step="2" id="sqN" oninput="drawSquare()"><span class="val" id="sqNv">3</span></div>
+    </div>
+    <div class="panel"><div class="lbl">합성 파형</div><div style="position:relative;height:150px;"><canvas id="c-sq"></canvas></div></div>
+    <div class="panel"><div class="lbl">주파수 스펙트럼</div><div style="position:relative;height:120px;"><canvas id="c-sqf"></canvas></div></div>
+  </div>
+</div>
+
+<script>
+const N=512,fs=100,T=N/fs;
+const t=Array.from({length:N},(_,i)=>i/fs);
+let mode='sum',theoryOpen=false;
+
+const theories={
+  sum:{title:'푸리에 급수 & 중첩 원리',sections:[
+    {label:'핵심 수식',eqs:['x(t) = A₁·sin(2π·f₁·t + φ₁) + A₂·sin(2π·f₂·t + φ₂)','X(f) = ∫ x(t)·e^(-j2πft) dt']},
+    {label:'개념',text:'어떤 신호든 사인파의 합으로 표현할 수 있다. 중첩 원리에 의해 시간 영역에서 합산한 신호의 스펙트럼은 각 성분의 스펙트럼 합과 같다.'},
+    {label:'구현',code:'const s1 = t.map(ti => A1*Math.sin(2*Math.PI*f1*ti + phi1))\nconst s2 = t.map(ti => A2*Math.sin(2*Math.PI*f2*ti + phi2))\nconst sum = s1.map((v,i) => v + s2[i])'}
+  ]},
+  fft:{title:'고속 푸리에 변환 (FFT)',sections:[
+    {label:'핵심 수식',eqs:['X[k] = Σ x[n]·e^(-j2πkn/N)  ← DFT','FFT: Cooley-Tukey 분할정복 → O(N²)에서 O(N log N)','주파수 해상도: Δf = fs / N']},
+    {label:'개념',text:'DFT를 짝수/홀수로 분할해 재귀 적용. 노이즈가 심해도 주파수 영역에서 에너지가 집중되므로 신호 검출이 가능하다.'},
+    {label:'구현',code:'// Cooley-Tukey in-place FFT\n// 비트역순 정렬 → 버터플라이 연산\nreturn re.map((r,i) => Math.sqrt(r*r+im[i]*im[i])/n)'}
+  ]},
+  square:{title:'구형파 분해 & 깁스 현상',sections:[
+    {label:'핵심 수식',eqs:['x_sq(t) = (4/π)·Σ sin(2π·(2k-1)·t)/(2k-1),  k=1,2,...','불연속점 오버슈트 ≈ 8.95% → N→∞ 여도 사라지지 않음']},
+    {label:'개념',text:'구형파는 홀수 고조파만 포함하며 진폭이 1/k로 감소. 깁스 현상: 불연속점 근처 오버슈트가 항 수에 무관하게 유지된다.'},
+    {label:'구현',code:'for(let k=1; k<=N; k+=2)\n  v += (4/(Math.PI*k))*Math.sin(2*Math.PI*k*ti)'}
+  ]}
+};
+
+function buildHTML(m){const th=theories[m];let h=`<h3>${th.title}</h3>`;th.sections.forEach(s=>{h+=`<div class="ts"><div class="ts-lbl">${s.label}</div>`;if(s.eqs)s.eqs.forEach(e=>{h+=`<div class="eq">${e}</div>`;});if(s.text)h+=`<div class="tt">${s.text}</div>`;if(s.code)h+=`<div class="code-ref">${s.code.replace(/\n/g,'<br>')}</div>`;h+=`</div>`;});return h;}
+function toggleTheory(){theoryOpen=!theoryOpen;const p=document.getElementById('theoryPanel'),b=document.getElementById('theoryBtn');p.innerHTML=buildHTML(mode);p.className='theory-box'+(theoryOpen?' show':'');b.textContent=theoryOpen?'이론 닫기':'이론 보기';b.className='theory-btn'+(theoryOpen?' open':'');}
+
+function getCtx(id,h){const el=document.getElementById(id);if(!el)return null;const dpr=window.devicePixelRatio||1;const W=el.parentElement.getBoundingClientRect().width||400;el.width=W*dpr;el.height=h*dpr;const ctx=el.getContext('2d');ctx.scale(dpr,dpr);return{ctx,W,H:h};}
+function gc(v){const s=getComputedStyle(document.documentElement).getPropertyValue(v).trim();return s||null;}
+function getBG(){return window.matchMedia('(prefers-color-scheme:dark)').matches?'#1e1e1e':'#ffffff';}
+function getTextColor(){return window.matchMedia('(prefers-color-scheme:dark)').matches?'#e8e8e8':'#1a1a1a';}
+function getSubColor(){return window.matchMedia('(prefers-color-scheme:dark)').matches?'#888':'#888';}
+function getBorderColor(){return window.matchMedia('(prefers-color-scheme:dark)').matches?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';}
+
+function axes(ctx,W,H){ctx.strokeStyle=getBorderColor();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();}
+function drawLine(ctx,xs,ys,W,H,color,lw){ctx.strokeStyle=color;ctx.lineWidth=lw||1.5;ctx.beginPath();xs.forEach((x,i)=>{const px=x*W,py=H/2-ys[i]*H*0.38;i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});ctx.stroke();}
+
+function fftMag(signal){const n=signal.length,re=[...signal],im=new Array(n).fill(0);let j=0;for(let i=1;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]];}}for(let len=2;len<=n;len<<=1){const ang=-2*Math.PI/len;for(let i=0;i<n;i+=len)for(let k=0;k<len/2;k++){const wr=Math.cos(ang*k),wi=Math.sin(ang*k),ur=re[i+k],ui=im[i+k],vr=re[i+k+len/2]*wr-im[i+k+len/2]*wi,vi=re[i+k+len/2]*wi+im[i+k+len/2]*wr;re[i+k]=ur+vr;im[i+k]=ui+vi;re[i+k+len/2]=ur-vr;im[i+k+len/2]=ui-vi;}}return re.map((r,i)=>Math.sqrt(r*r+im[i]*im[i])/n);}
+
+function draw(){
+  const f1=+document.getElementById('f1').value,a1=+document.getElementById('a1').value,p1=+document.getElementById('p1').value*Math.PI/180;
+  const f2=+document.getElementById('f2').value,a2=+document.getElementById('a2').value,p2=+document.getElementById('p2').value*Math.PI/180;
+  document.getElementById('f1v').textContent=f1+' Hz';document.getElementById('a1v').textContent=a1.toFixed(1);document.getElementById('p1v').textContent=document.getElementById('p1').value+'°';
+  document.getElementById('f2v').textContent=f2+' Hz';document.getElementById('a2v').textContent=a2.toFixed(1);document.getElementById('p2v').textContent=document.getElementById('p2').value+'°';
+  const s1=t.map(ti=>a1*Math.sin(2*Math.PI*f1*ti+p1)),s2=t.map(ti=>a2*Math.sin(2*Math.PI*f2*ti+p2)),sum=s1.map((v,i)=>v+s2[i]),maxA=Math.max(a1+a2,1),xs=t.map(ti=>ti/T);
+  const r1=getCtx('c-time',150);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawLine(ctx,xs,s1.map(v=>v/maxA),W,H,'#378ADD',1.2);drawLine(ctx,xs,s2.map(v=>v/maxA),W,H,'#1D9E75',1.2);drawLine(ctx,xs,sum.map(v=>v/maxA),W,H,getTextColor(),2);ctx.font='11px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('성분 1',8,16);ctx.fillStyle='#1D9E75';ctx.fillText('성분 2',8,30);ctx.fillStyle=getSubColor();ctx.fillText('합성',8,44);}
+  const r2=getCtx('c-freq',120);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);ctx.strokeStyle=getBorderColor();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-20);ctx.lineTo(W,H-20);ctx.stroke();const maxF=25;[[f1,a1,'#378ADD'],[f2,a2,'#1D9E75']].forEach(([f,a,c])=>{const x=(f/maxF)*(W-20)+10,bh=(a/(a1+a2+0.01))*(H-30);ctx.fillStyle=c;ctx.fillRect(x-4,H-20-bh,8,bh);ctx.fillStyle=getSubColor();ctx.font='10px sans-serif';ctx.fillText(f+'Hz',x-8,H-6);});}
+  document.getElementById('m1').textContent=f1+'Hz / A='+a1.toFixed(1);document.getElementById('m2').textContent=f2+'Hz / A='+a2.toFixed(1);document.getElementById('mdp').textContent=Math.abs(+document.getElementById('p1').value - +document.getElementById('p2').value)+'°';
+}
+
+function drawFFT(){
+  const noise=+document.getElementById('noise').value,hf=+document.getElementById('hf').value;
+  document.getElementById('noisev').textContent=noise.toFixed(1);document.getElementById('hfv').textContent=hf+' Hz';
+  const sig=t.map(ti=>3*Math.sin(2*Math.PI*3*ti)+2*Math.sin(2*Math.PI*hf*ti)+(Math.random()-.5)*2*noise);
+  const xs=t.map(ti=>ti/T),maxS=Math.max(...sig.map(Math.abs),1);
+  const r1=getCtx('c-noisy',130);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawLine(ctx,xs,sig.map(v=>v/maxS),W,H,'#BA7517',1.2);}
+  const mag=fftMag(sig),halfN=N/2,df=fs/N;
+  const r2=getCtx('c-fft',130);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);ctx.strokeStyle=getBorderColor();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-18);ctx.lineTo(W,H-18);ctx.stroke();const maxMag=Math.max(...mag.slice(1,halfN)),maxFreq=35;for(let i=1;i<halfN;i++){const f=i*df;if(f>maxFreq)break;const x=(f/maxFreq)*(W-20)+10,bh=(mag[i]/maxMag)*(H-30);if(bh<0.5)continue;ctx.fillStyle=Math.abs(f-hf)<df*1.5?'#D85A30':Math.abs(f-3)<df*1.5?'#378ADD':getBorderColor();ctx.fillRect(x-1.5,H-18-bh,3,bh);}ctx.font='10px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('3Hz',(3/35)*(r2.W-20)+2,H-4);ctx.fillStyle='#D85A30';ctx.fillText(hf+'Hz',(hf/35)*(r2.W-20)+2,H-4);}
+}
+
+function drawSquare(){
+  const nT=+document.getElementById('sqN').value;document.getElementById('sqNv').textContent=nT;
+  const sig=t.map(ti=>{let v=0;for(let k=1;k<=nT;k+=2)v+=(4/(Math.PI*k))*Math.sin(2*Math.PI*k*ti);return v;});
+  const xs=t.map(ti=>ti/T);
+  const r1=getCtx('c-sq',150);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);const ideal=t.map(ti=>Math.sin(2*Math.PI*ti)>=0?1:-1);ctx.setLineDash([4,3]);drawLine(ctx,xs,ideal,W,H,getBorderColor(),0.8);ctx.setLineDash([]);drawLine(ctx,xs,sig,W,H,'#534AB7',2);ctx.font='11px sans-serif';ctx.fillStyle=getSubColor();ctx.fillText('이상 구형파',8,14);ctx.fillStyle='#534AB7';ctx.fillText('N='+nT+' 합성',8,28);}
+  const r2=getCtx('c-sqf',120);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);ctx.strokeStyle=getBorderColor();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-20);ctx.lineTo(W,H-20);ctx.stroke();const maxF=30;for(let k=1;k<=25;k+=2){const amp=4/(Math.PI*k),x=(k/maxF)*(W-20)+10,bh=amp*(H-30)*0.9;ctx.fillStyle=k<=nT?'#534AB7':getBorderColor();ctx.fillRect(x-4,H-20-bh,8,bh);ctx.font='9px sans-serif';ctx.fillStyle=k<=nT?'#534AB7':getSubColor();if(k<=maxF)ctx.fillText(k,x-3,H-6);}}
+}
+
+function setMode(m){mode=m;['sum','fft','square'].forEach((x,i)=>{document.getElementById('mode-'+x).style.display=x===m?'':'none';document.querySelectorAll('.tab')[i].className='tab'+(x===m?' active':'');});if(theoryOpen){document.getElementById('theoryPanel').innerHTML=buildHTML(m);}if(m==='sum')draw();if(m==='fft')drawFFT();if(m==='square')drawSquare();}
+draw();
+</script>
+</body>
+</html>

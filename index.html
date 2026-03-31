@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Physics Simulation Platform — JeonghyeonLee</title>
+<style>
+  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.1);--text:#1a1a1a;--text2:#666;--blue:#378ADD;--purple:#534AB7;--green:#1D9E75;--amber:#BA7517;--red:#D85A30;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.1);--text:#e8e8e8;--text2:#999;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
+  header{padding:60px 24px 40px;max-width:860px;margin:0 auto;}
+  .badge{display:inline-block;font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);color:var(--text2);margin-bottom:16px;}
+  h1{font-size:32px;font-weight:500;margin-bottom:12px;line-height:1.2;}
+  .tagline{font-size:16px;color:var(--text2);line-height:1.6;max-width:560px;margin-bottom:40px;}
+  .section-grid{max-width:860px;margin:0 auto;padding:0 24px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;}
+  .section-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;text-decoration:none;color:var(--text);transition:transform 0.15s,border-color 0.15s;}
+  .section-card:hover{transform:translateY(-2px);border-color:rgba(0,0,0,0.2);}
+  .section-card.disabled{opacity:0.5;pointer-events:none;}
+  .icon{font-size:28px;margin-bottom:14px;}
+  .section-card h2{font-size:18px;font-weight:500;margin-bottom:8px;}
+  .section-card p{font-size:13px;color:var(--text2);line-height:1.6;}
+  .topics{display:flex;flex-wrap:wrap;gap:4px;margin-top:14px;}
+  .topic{font-size:11px;padding:2px 8px;border-radius:4px;background:var(--bg);border:1px solid var(--border);color:var(--text2);}
+  .count{font-size:12px;color:var(--text2);margin-top:12px;}
+  footer{border-top:1px solid var(--border);padding:24px;text-align:center;font-size:13px;color:var(--text2);}
+  .accent-blue{border-top:3px solid var(--blue);}
+  .accent-purple{border-top:3px solid var(--purple);}
+  .accent-green{border-top:3px solid var(--green);}
+</style>
+</head>
+<body>
+<header>
+  <div class="badge">Physics Simulation Platform</div>
+  <h1>Interactive Physics &<br>Engineering Simulations</h1>
+  <p class="tagline">전자공학 전공 지식을 인터랙티브 시뮬레이터로 — 신호처리, 전자기학, 광학, 제어공학</p>
+</header>
+
+<div class="section-grid">
+  <a class="section-card accent-blue" href="signals/index.html">
+    <div class="icon">〜</div>
+    <h2>Signals & Systems</h2>
+    <p>신호처리 · 변복조 이론을 실시간으로 시각화</p>
+    <div class="topics">
+      <span class="topic">푸리에 변환</span><span class="topic">AM/FM</span><span class="topic">PM/DM</span>
+      <span class="topic">샘플링</span><span class="topic">PSK/QAM</span>
+    </div>
+    <div class="count">5 시뮬레이터 · 1 준비 중</div>
+  </a>
+
+  <a class="section-card accent-purple disabled" href="#">
+    <div class="icon">⚡</div>
+    <h2>EM & Optics</h2>
+    <p>전자기학 · 파동광학 · FDTD 시뮬레이션</p>
+    <div class="topics">
+      <span class="topic">Waveguide</span><span class="topic">FDTD 1D/2D</span>
+      <span class="topic">Yee 알고리즘</span><span class="topic">간섭/회절</span>
+    </div>
+    <div class="count">준비 중</div>
+  </a>
+
+  <a class="section-card accent-green disabled" href="#">
+    <div class="icon">⚙</div>
+    <h2>Robotics & Control</h2>
+    <p>역운동학 · PID 제어 · 궤적 계획</p>
+    <div class="topics">
+      <span class="topic">IK/FK</span><span class="topic">PID</span>
+      <span class="topic">FABRIK</span><span class="topic">DH 파라미터</span>
+    </div>
+    <div class="count">준비 중</div>
+  </a>
+</div>
+
+<footer>
+  physics-sim-platform · JeonghyeonLee · <a href="https://github.com/jeonghyeonlee/physics-sim-platform" style="color:inherit;">GitHub</a>
+</footer>
+</body>
+</html>

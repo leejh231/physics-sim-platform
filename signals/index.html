@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signals & Systems — physics-sim-platform</title>
+<style>
+  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.1);--text:#1a1a1a;--text2:#666;--blue:#378ADD;--purple:#534AB7;--green:#1D9E75;--amber:#BA7517;--red:#D85A30;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.1);--text:#e8e8e8;--text2:#999;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
+  nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+  nav a{font-size:13px;color:var(--text2);text-decoration:none;}nav a:hover{color:var(--text);}
+  .sep{color:var(--border);}.cur{color:var(--text);font-weight:500;}
+  .container{max-width:860px;margin:0 auto;padding:40px 16px;}
+  h1{font-size:26px;font-weight:500;margin-bottom:8px;}
+  .desc{font-size:15px;color:var(--text2);margin-bottom:40px;line-height:1.6;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;text-decoration:none;color:var(--text);transition:border-color 0.15s;}
+  .card:hover{border-color:var(--blue);}
+  .card-num{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;}
+  .card-title{font-size:16px;font-weight:500;margin-bottom:6px;}
+  .card-desc{font-size:13px;color:var(--text2);line-height:1.5;}
+  .card-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:12px;}
+  .tag{font-size:11px;padding:2px 7px;border-radius:4px;background:var(--bg);border:1px solid var(--border);color:var(--text2);}
+  .accent{border-left:3px solid var(--blue);}
+</style>
+</head>
+<body>
+<nav>
+  <a href="../index.html">physics-sim-platform</a>
+  <span class="sep">/</span>
+  <span class="cur">signals</span>
+</nav>
+<div class="container">
+  <h1>Signals & Systems</h1>
+  <p class="desc">신호처리 · 통신이론 · 변복조 — 인터랙티브 시뮬레이터와 이론 정리</p>
+  <div class="grid">
+    <a class="card accent" href="01_fourier/index.html">
+      <div class="card-num">01</div>
+      <div class="card-title">푸리에 변환</div>
+      <div class="card-desc">파형 합성, FFT 분석, 구형파 분해, 깁스 현상</div>
+      <div class="card-tags"><span class="tag">FFT</span><span class="tag">스펙트럼</span><span class="tag">중첩</span></div>
+    </a>
+    <a class="card accent" href="02_am_fm_dsb/index.html">
+      <div class="card-num">02</div>
+      <div class="card-title">AM / FM / DSB-SC</div>
+      <div class="card-desc">진폭·주파수 변조, 억압 반송파, 베셀 함수 스펙트럼</div>
+      <div class="card-tags"><span class="tag">AM</span><span class="tag">FM</span><span class="tag">DSB-SC</span></div>
+    </a>
+    <a class="card accent" href="03_pm_dm/index.html">
+      <div class="card-num">03</div>
+      <div class="card-title">PM / DM / ADM</div>
+      <div class="card-desc">위상 변조, 델타 변조, 적응형 델타 변조</div>
+      <div class="card-tags"><span class="tag">PM</span><span class="tag">DM</span><span class="tag">ADM</span></div>
+    </a>
+    <a class="card accent" href="04_sampling/index.html">
+      <div class="card-num">04</div>
+      <div class="card-title">샘플링 & 나이퀴스트</div>
+      <div class="card-desc">샘플링 정리, 에일리어싱, sinc 재구성, 스펙트럼 복제</div>
+      <div class="card-tags"><span class="tag">나이퀴스트</span><span class="tag">에일리어싱</span><span class="tag">sinc</span></div>
+    </a>
+    <a class="card accent" href="05_digital_modulation/index.html">
+      <div class="card-num">05</div>
+      <div class="card-title">디지털 변조</div>
+      <div class="card-desc">BPSK, QPSK, FSK, QAM, 성상도, BER 곡선</div>
+      <div class="card-tags"><span class="tag">PSK</span><span class="tag">QAM</span><span class="tag">FSK</span><span class="tag">BER</span></div>
+    </a>
+    <a class="card" href="#" style="opacity:0.5;pointer-events:none;">
+      <div class="card-num">06</div>
+      <div class="card-title">확률 & 통계</div>
+      <div class="card-desc">가우시안 분포, 랜덤 변수, 중심극한정리</div>
+      <div class="card-tags"><span class="tag">준비 중</span></div>
+    </a>
+  </div>
+</div>
+</body>
+</html>

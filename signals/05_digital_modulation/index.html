@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>디지털 변조 — physics-sim-platform</title>
+<style>
+  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.12);--text:#1a1a1a;--text2:#666;--info-bg:#E6F1FB;--info:#185FA5;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.12);--text:#e8e8e8;--text2:#999;--info-bg:#0c2a40;--info:#5aabf0;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
+  nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+  nav a{font-size:13px;color:var(--text2);text-decoration:none;}nav a:hover{color:var(--text);}
+  .sep{color:var(--border);}.cur{color:var(--text);font-weight:500;}
+  .container{max-width:860px;margin:0 auto;padding:24px 16px;}
+  h1{font-size:22px;font-weight:500;margin-bottom:4px;}.subtitle{font-size:14px;color:var(--text2);margin-bottom:24px;}
+  .panel{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .lbl{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .row label{font-size:13px;color:var(--text2);width:90px;flex-shrink:0;}
+  .row input[type=range]{flex:1;accent-color:#534AB7;}
+  .row select{flex:1;font-size:13px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);}
+  .val{font-size:13px;font-weight:500;min-width:56px;text-align:right;}
+  canvas{width:100%;display:block;}
+  .tab-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
+  .tab{font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;}
+  .tab.active{background:var(--bg2);color:var(--text);font-weight:500;}
+  .theory-btn{font-size:12px;padding:4px 12px;border-radius:8px;border:1px solid var(--info);background:transparent;color:var(--info);cursor:pointer;font-family:inherit;margin-left:auto;}
+  .theory-btn.open{background:var(--info-bg);}
+  .theory-box{background:var(--bg2);border-radius:12px;border:1px solid var(--border);padding:16px;margin-bottom:10px;display:none;}
+  .theory-box.show{display:block;}
+  .theory-box h3{font-size:14px;font-weight:500;margin-bottom:12px;}
+  .ts{margin-bottom:14px;}.ts-lbl{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+  .eq{font-family:'SF Mono',Consolas,monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;line-height:1.7;margin-bottom:5px;}
+  .tt{font-size:13px;color:var(--text2);line-height:1.7;}
+  .code-ref{font-family:'SF Mono',Consolas,monospace;font-size:12px;background:var(--bg);border-left:2px solid #534AB7;padding:8px 12px;border-radius:0 8px 8px 0;color:var(--text2);margin-top:6px;line-height:1.6;}
+  .metric-row{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px;}
+  .metric{background:var(--bg2);border-radius:8px;padding:8px 10px;}.m-label{font-size:11px;color:var(--text2);}.m-val{font-size:14px;font-weight:500;margin-top:2px;}
+  .note{font-size:12px;color:var(--text2);margin-top:8px;padding:8px 12px;background:var(--bg2);border-radius:8px;line-height:1.6;}
+  .const-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .bits-row{display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap;}
+  .bit{font-family:'SF Mono',Consolas,monospace;font-size:12px;padding:2px 7px;border-radius:4px;font-weight:500;color:white;}
+</style>
+</head>
+<body>
+<nav>
+  <a href="../../index.html">physics-sim-platform</a><span class="sep">/</span>
+  <a href="../index.html">signals</a><span class="sep">/</span>
+  <span class="cur">05 디지털 변조</span>
+</nav>
+<div class="container">
+  <h1>디지털 변조 (PSK / FSK / QAM)</h1>
+  <p class="subtitle">BPSK · QPSK · FSK · QAM · 성상도 · BER 성능 비교</p>
+  <div class="tab-bar">
+    <button class="tab active" onclick="setMode('bpsk')">BPSK</button>
+    <button class="tab" onclick="setMode('qpsk')">QPSK</button>
+    <button class="tab" onclick="setMode('fsk')">FSK</button>
+    <button class="tab" onclick="setMode('qam')">QAM</button>
+    <button class="tab" onclick="setMode('cmp')">성능 비교</button>
+    <button class="theory-btn" id="theoryBtn" onclick="toggleTheory()">이론 보기</button>
+  </div>
+  <div id="theoryPanel" class="theory-box"></div>
+
+  <div id="mode-bpsk">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">파라미터</div>
+        <div class="row"><label>반송파 fc</label><input type="range" min="5" max="30" value="10" step="1" id="bpsk_fc" oninput="drawBPSK()"><span class="val" id="bpsk_fcv">10 Hz</span></div>
+        <div class="row"><label>비트율 Rb</label><input type="range" min="1" max="5" value="2" step="1" id="bpsk_rb" oninput="drawBPSK()"><span class="val" id="bpsk_rbv">2 bps</span></div>
+      </div>
+      <div class="panel"><div class="lbl">비트 스트림</div><div id="bpsk-bits" class="bits-row"></div><div style="font-size:12px;color:var(--text2);margin-top:6px;">0 → 위상 180° &nbsp; 1 → 위상 0°</div></div>
+    </div>
+    <div class="panel"><div class="lbl">BPSK 파형</div><div style="position:relative;height:130px;"><canvas id="c-bpsk-wave"></canvas></div></div>
+    <div class="const-wrap">
+      <div class="panel"><div class="lbl">성상도</div><div style="position:relative;height:150px;"><canvas id="c-bpsk-const"></canvas></div></div>
+      <div class="panel"><div class="lbl">스펙트럼</div><div style="position:relative;height:150px;"><canvas id="c-bpsk-spec"></canvas></div>
+        <div class="metric-row"><div class="metric"><div class="m-label">비트/심볼</div><div class="m-val">1</div></div><div class="metric"><div class="m-label">BW (null-null)</div><div class="m-val" id="bpsk-bw">—</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mode-qpsk" style="display:none;">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">파라미터</div>
+        <div class="row"><label>반송파 fc</label><input type="range" min="5" max="30" value="10" step="1" id="qpsk_fc" oninput="drawQPSK()"><span class="val" id="qpsk_fcv">10 Hz</span></div>
+        <div class="row"><label>심볼율 Rs</label><input type="range" min="1" max="4" value="2" step="1" id="qpsk_rs" oninput="drawQPSK()"><span class="val" id="qpsk_rsv">2 sym/s</span></div>
+      </div>
+      <div class="panel"><div class="lbl">비트 스트림 (2비트=1심볼)</div><div id="qpsk-bits" class="bits-row"></div><div style="font-size:12px;color:var(--text2);margin-top:6px;">00→45° 01→135° 10→225° 11→315°</div></div>
+    </div>
+    <div class="panel"><div class="lbl">QPSK 파형</div><div style="position:relative;height:130px;"><canvas id="c-qpsk-wave"></canvas></div></div>
+    <div class="const-wrap">
+      <div class="panel"><div class="lbl">성상도</div><div style="position:relative;height:150px;"><canvas id="c-qpsk-const"></canvas></div></div>
+      <div class="panel"><div class="lbl">I / Q 성분</div><div style="position:relative;height:150px;"><canvas id="c-qpsk-iq"></canvas></div>
+        <div class="metric-row"><div class="metric"><div class="m-label">비트/심볼</div><div class="m-val">2</div></div><div class="metric"><div class="m-label">BW (BPSK 대비)</div><div class="m-val">1/2</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mode-fsk" style="display:none;">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">파라미터</div>
+        <div class="row"><label>중심 fc</label><input type="range" min="8" max="25" value="12" step="1" id="fsk_fc" oninput="drawFSK()"><span class="val" id="fsk_fcv">12 Hz</span></div>
+        <div class="row"><label>주파수 편이</label><input type="range" min="1" max="8" value="3" step="1" id="fsk_fd" oninput="drawFSK()"><span class="val" id="fsk_fdv">3 Hz</span></div>
+      </div>
+      <div class="panel"><div class="lbl">비트 스트림</div><div id="fsk-bits" class="bits-row"></div>
+        <div class="row" style="margin-top:8px;"><label>비트율 Rb</label><input type="range" min="1" max="4" value="2" step="1" id="fsk_rb" oninput="drawFSK()"><span class="val" id="fsk_rbv">2 bps</span></div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">FSK 파형</div><div style="position:relative;height:140px;"><canvas id="c-fsk-wave"></canvas></div></div>
+    <div class="const-wrap">
+      <div class="panel"><div class="lbl">주파수 전환 상세</div><div style="position:relative;height:150px;"><canvas id="c-fsk-zoom"></canvas></div></div>
+      <div class="panel"><div class="lbl">스펙트럼</div><div style="position:relative;height:150px;"><canvas id="c-fsk-spec"></canvas></div>
+        <div class="metric-row"><div class="metric"><div class="m-label">f1 (bit 0)</div><div class="m-val" id="fsk-f1">—</div></div><div class="metric"><div class="m-label">f2 (bit 1)</div><div class="m-val" id="fsk-f2">—</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mode-qam" style="display:none;">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">파라미터</div>
+        <div class="row"><label>변조 차수</label><select id="qam_m" onchange="drawQAM()"><option value="4">4-QAM (= QPSK)</option><option value="16" selected>16-QAM</option><option value="64">64-QAM</option></select></div>
+        <div class="row"><label>노이즈</label><input type="range" min="0" max="0.6" value="0.1" step="0.02" id="qam_noise" oninput="drawQAM()"><span class="val" id="qam_noisev">0.10</span></div>
+      </div>
+      <div class="panel"><div class="lbl">QAM 개념</div><div style="font-size:13px;color:var(--text2);line-height:1.7;">진폭과 위상을 동시에 변조.<br>M-QAM: log₂M 비트/심볼<br>노이즈에 더 취약하지만 효율↑</div></div>
+    </div>
+    <div class="panel"><div class="lbl">성상도 (노이즈 포함)</div><div style="position:relative;height:240px;"><canvas id="c-qam-const"></canvas></div>
+      <div class="metric-row"><div class="metric"><div class="m-label">심볼 수 / 비트/심볼</div><div class="m-val" id="qam-info">—</div></div><div class="metric"><div class="m-label">스펙트럼 효율</div><div class="m-val" id="qam-eff">—</div></div></div>
+    </div>
+  </div>
+
+  <div id="mode-cmp" style="display:none;">
+    <div class="panel"><div class="lbl">스펙트럼 효율 비교</div><div style="position:relative;height:200px;"><canvas id="c-cmp-bar"></canvas></div></div>
+    <div class="panel"><div class="lbl">SNR vs BER 이론 곡선</div><div style="position:relative;height:200px;"><canvas id="c-cmp-ber"></canvas></div>
+      <div class="note">스펙트럼 효율(bits/s/Hz)은 변조 차수가 높을수록 증가하지만, 같은 SNR에서 BER도 높아진다 — 효율과 신뢰성의 트레이드오프. 실제 시스템(LTE, WiFi)은 채널 상태에 따라 변조 방식을 적응적으로 전환한다(AMC).</div>
+    </div>
+  </div>
+</div>
+<script>
+const N=1024,FS=200,Ts=1/FS;
+const tArr=Array.from({length:N},(_,i)=>i*Ts);
+const BITS=[1,0,1,1,0,0,1,0,1,1,0,1,0,0,1,1];
+const COLORS=['#378ADD','#1D9E75','#D85A30','#534AB7','#BA7517','#993556'];
+let curMode='bpsk',theoryOpen=false;
+const isDark=()=>window.matchMedia('(prefers-color-scheme:dark)').matches;
+const SC=()=>isDark()?'#888':'#888';
+const BC=()=>isDark()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';
+
+const theories={
+  bpsk:{title:'BPSK (Binary Phase Shift Keying)',sections:[
+    {label:'핵심 수식',eqs:['s(t) = ±A·cos(2πfc·t)  (bit=1: +, bit=0: -)','BER = Q(√(2Eb/N0))  ← 디지털 변조 중 최고 BER','스펙트럼 효율: 1 bit/s/Hz']},
+    {label:'개념',text:'가장 단순한 위상 변조. 성상도에서 두 심볼이 최대 거리를 가져 잡음 성능이 가장 좋다. 위성통신·GPS·심우주 통신에 사용.'},
+    {label:'구현',code:'const phase = bit===1 ? 0 : Math.PI\ncos(2π*fc*t + phase)'}
+  ]},
+  qpsk:{title:'QPSK (Quadrature Phase Shift Keying)',sections:[
+    {label:'핵심 수식',eqs:['s(t) = I·cos(2πfc·t) - Q·sin(2πfc·t)','00→45°, 01→135°, 10→225°, 11→315°','BER = Q(√(2Eb/N0))  ← BPSK와 동일, 2배 효율']},
+    {label:'개념',text:'2비트를 하나의 심볼로 전송. BPSK와 동일한 BER이면서 스펙트럼 효율 2배. I/Q 두 채널을 독립 사용. LTE, WiFi, GPS 기본 변조.'},
+    {label:'구현',code:'I = b0===1 ? +1 : -1\nQ = b1===1 ? +1 : -1\ns = I*cos(2π*fc*t) - Q*sin(2π*fc*t)'}
+  ]},
+  fsk:{title:'FSK (Frequency Shift Keying)',sections:[
+    {label:'핵심 수식',eqs:['bit=0: cos(2πf1·t),  f1 = fc - fd','bit=1: cos(2πf2·t),  f2 = fc + fd','BER = Q(√(Eb/N0))  ← BPSK보다 3dB 열등']},
+    {label:'개념',text:'비트에 따라 두 주파수를 사용. 구현 간단. MSK(최소 편이): Δf = Rb/2 직교 조건. GMSK(가우시안 필터)는 GSM 휴대폰의 기본 변조였다.'},
+    {label:'구현',code:'const f = bit===1 ? f2 : f1\ncos(2π*f*t)'}
+  ]},
+  qam:{title:'QAM (Quadrature Amplitude Modulation)',sections:[
+    {label:'핵심 수식',eqs:['s(t) = I·cos(2πfc·t) - Q·sin(2πfc·t)','M-QAM: √M × √M 격자 배열','16-QAM: 4 bit/sym,  64-QAM: 6 bit/sym']},
+    {label:'개념',text:'진폭과 위상 동시 변조. M이 클수록 효율↑ 하지만 잡음에 취약. WiFi 802.11ax: 1024-QAM, 5G NR: 256-QAM, 케이블 TV: 256-QAM.'},
+    {label:'구현',code:'const levels = [-3,-1,+1,+3]  // 16-QAM\nI = levels[sym >> 2]\nQ = levels[sym & 0x3]'}
+  ]},
+  cmp:{title:'디지털 변조 방식 비교',sections:[
+    {label:'스펙트럼 효율',eqs:['BPSK:   1 bit/s/Hz','QPSK:   2 bit/s/Hz','16-QAM: 4 bit/s/Hz','64-QAM: 6 bit/s/Hz','FSK:    < 1 bit/s/Hz']},
+    {label:'BER 성능',text:'같은 Eb/N0에서: BPSK ≈ QPSK > 16-QAM > 64-QAM > FSK. BPSK=QPSK는 같은 BER이면서 QPSK가 2배 효율. 16-QAM은 QPSK보다 약 4dB 높은 SNR 필요.'},
+    {label:'응용',eqs:['BPSK: 위성통신, GPS, 심우주','QPSK: LTE 제어채널, DVB-S2','16-QAM: LTE 데이터, WiFi 802.11a/g','FSK: 블루투스, RFID, Zigbee']}
+  ]}
+};
+
+function buildHTML(m){const th=theories[m];let h=`<h3>${th.title}</h3>`;th.sections.forEach(s=>{h+=`<div class="ts"><div class="ts-lbl">${s.label}</div>`;if(s.eqs)s.eqs.forEach(e=>{h+=`<div class="eq">${e}</div>`;});if(s.text)h+=`<div class="tt">${s.text}</div>`;if(s.code)h+=`<div class="code-ref">${s.code.replace(/\n/g,'<br>')}</div>`;h+=`</div>`;});return h;}
+function toggleTheory(){theoryOpen=!theoryOpen;const p=document.getElementById('theoryPanel'),b=document.getElementById('theoryBtn');p.innerHTML=buildHTML(curMode);p.className='theory-box'+(theoryOpen?' show':'');b.textContent=theoryOpen?'이론 닫기':'이론 보기';b.className='theory-btn'+(theoryOpen?' open':'');}
+function getCtx(id,h){const el=document.getElementById(id);if(!el)return null;const dpr=window.devicePixelRatio||1;const W=el.parentElement.getBoundingClientRect().width||400;el.width=W*dpr;el.height=h*dpr;const ctx=el.getContext('2d');ctx.scale(dpr,dpr);return{ctx,W,H:h};}
+function axes(ctx,W,H){ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();}
+function line(ctx,sig,W,H,color,lw,sc){const s=sc||Math.max(...sig.map(Math.abs),0.01);ctx.strokeStyle=color;ctx.lineWidth=lw||1.5;ctx.beginPath();sig.forEach((v,i)=>{const x=i/sig.length*W,y=H/2-v/s*H*0.4;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function drawBits(elId,bits,colors){const el=document.getElementById(elId);if(!el)return;el.innerHTML=bits.map((b,i)=>`<span class="bit" style="background:${colors[i%colors.length]}">${b}</span>`).join('');}
+
+function constellation(ctx,W,H,pts,labels,colors){ctx.clearRect(0,0,W,H);const cx=W/2,cy=H/2,r=Math.min(W,H)*0.38;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(cx-r*1.1,cy);ctx.lineTo(cx+r*1.1,cy);ctx.moveTo(cx,cy-r*1.1);ctx.lineTo(cx,cy+r*1.1);ctx.stroke();ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);pts.forEach((p,i)=>{const x=cx+p[0]*r,y=cy-p[1]*r;ctx.fillStyle=colors?colors[i%colors.length]:COLORS[i%COLORS.length];ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill();if(labels){ctx.font='10px sans-serif';ctx.fillText(labels[i],x+6,y-4);}});ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText('I',cx+r*1.05,cy+12);ctx.fillText('Q',cx+4,cy-r*1.05);}
+
+function drawBPSK(){
+  const fc=+document.getElementById('bpsk_fc').value,rb=+document.getElementById('bpsk_rb').value;
+  document.getElementById('bpsk_fcv').textContent=fc+' Hz';document.getElementById('bpsk_rbv').textContent=rb+' bps';
+  const bits=BITS.slice(0,8);drawBits('bpsk-bits',bits,bits.map(b=>b?'#1D9E75':'#D85A30'));
+  const spb=Math.round(FS/rb),sig=new Array(N).fill(0);
+  bits.forEach((b,i)=>{const ph=b?0:Math.PI;for(let j=0;j<spb&&i*spb+j<N;j++){const ti=(i*spb+j)*Ts;sig[i*spb+j]=Math.cos(2*Math.PI*fc*ti+ph);}});
+  const r1=getCtx('c-bpsk-wave',130);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);bits.forEach((_,i)=>{if(i>0){const x=i*spb/N*W;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();ctx.setLineDash([]); }});line(ctx,sig.slice(0,bits.length*spb),W,H,'#534AB7',1.8,1/0.38);bits.forEach((b,i)=>{ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText(b,(i*spb+spb/2)/N*W-3,12);});}
+  const r2=getCtx('c-bpsk-const',150);if(r2){constellation(r2.ctx,r2.W,r2.H,[[1,0],[-1,0]],['1','0'],['#1D9E75','#D85A30']);}
+  const r3=getCtx('c-bpsk-spec',150);if(r3){const{ctx,W,H}=r3;ctx.clearRect(0,0,W,H);ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-18);ctx.lineTo(W,H-18);ctx.stroke();const maxF=fc+rb*3;for(let f=0;f<maxF;f+=0.2){const x=(f/maxF)*(W-10)+5,arg=(f-fc)/rb,mag=Math.max(arg===0?1:Math.pow(Math.sin(Math.PI*arg)/(Math.PI*arg),2),0),bh=mag*(H-26);if(bh<0.2)continue;ctx.fillStyle='rgba(83,74,183,0.7)';ctx.fillRect(x-1,H-18-bh,2,bh);}ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText(fc+'Hz',(fc/maxF)*(W-10)+2,H-4);}
+  document.getElementById('bpsk-bw').textContent=(2*rb)+' Hz';
+}
+
+function drawQPSK(){
+  const fc=+document.getElementById('qpsk_fc').value,rs=+document.getElementById('qpsk_rs').value;
+  document.getElementById('qpsk_fcv').textContent=fc+' Hz';document.getElementById('qpsk_rsv').textContent=rs+' sym/s';
+  const bits=BITS.slice(0,8);drawBits('qpsk-bits',bits,bits.map((_,i)=>COLORS[Math.floor(i/2)%COLORS.length]));
+  const spb=Math.round(FS/rs),sig=new Array(N).fill(0),Iarr=new Array(N).fill(0),Qarr=new Array(N).fill(0);
+  const phMap={0:Math.PI/4,1:3*Math.PI/4,2:5*Math.PI/4,3:7*Math.PI/4};
+  for(let sym=0;sym<4&&sym*2+1<bits.length;sym++){const b0=bits[sym*2],b1=bits[sym*2+1],idx=(b0<<1)|b1,ph=phMap[idx],I=Math.cos(ph),Q=Math.sin(ph);for(let j=0;j<spb&&sym*spb+j<N;j++){const ti=(sym*spb+j)*Ts,k=sym*spb+j;sig[k]=Math.cos(2*Math.PI*fc*ti+ph);Iarr[k]=I;Qarr[k]=Q;}}
+  const r1=getCtx('c-qpsk-wave',130);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);for(let sym=1;sym<4;sym++){const x=sym*spb/N*W;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();ctx.setLineDash([]);}line(ctx,sig.slice(0,4*spb),W,H,'#534AB7',1.8,1/0.38);}
+  const r2=getCtx('c-qpsk-const',150);if(r2){const pts=[[1,1],[-1,1],[-1,-1],[1,-1]].map(p=>[p[0]/Math.sqrt(2),p[1]/Math.sqrt(2)]);constellation(r2.ctx,r2.W,r2.H,pts,['01','00','10','11'],COLORS);}
+  const r3=getCtx('c-qpsk-iq',150);if(r3){const{ctx,W,H}=r3;ctx.clearRect(0,0,W,H);line(ctx,Iarr.slice(0,4*spb),W,H,'#378ADD',1.5,1/0.38);line(ctx,Qarr.slice(0,4*spb),W,H,'#1D9E75',1.5,1/0.38);ctx.font='11px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('I',4,14);ctx.fillStyle='#1D9E75';ctx.fillText('Q',4,28);}
+}
+
+function drawFSK(){
+  const fc=+document.getElementById('fsk_fc').value,fd=+document.getElementById('fsk_fd').value,rb=+document.getElementById('fsk_rb').value;
+  document.getElementById('fsk_fcv').textContent=fc+' Hz';document.getElementById('fsk_fdv').textContent=fd+' Hz';document.getElementById('fsk_rbv').textContent=rb+' bps';
+  const f1=fc-fd,f2=fc+fd;document.getElementById('fsk-f1').textContent=f1+' Hz';document.getElementById('fsk-f2').textContent=f2+' Hz';
+  const bits=BITS.slice(0,8);drawBits('fsk-bits',bits,bits.map(b=>b?'#1D9E75':'#378ADD'));
+  const spb=Math.round(FS/rb),sig=new Array(N).fill(0);
+  bits.forEach((b,i)=>{const f=b?f2:f1;for(let j=0;j<spb&&i*spb+j<N;j++){const ti=(i*spb+j)*Ts;sig[i*spb+j]=Math.cos(2*Math.PI*f*ti);}});
+  const r1=getCtx('c-fsk-wave',140);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);bits.forEach((_,i)=>{if(i>0){const x=i*spb/N*W;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();ctx.setLineDash([]);}});bits.forEach((b,i)=>{const seg=sig.slice(i*spb,(i+1)*spb);ctx.strokeStyle=b?'#1D9E75':'#378ADD';ctx.lineWidth=1.8;ctx.beginPath();seg.forEach((v,j)=>{const x=(i*spb+j)/N*W,y=H/2-v*H*0.38;j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();ctx.font='10px sans-serif';ctx.fillStyle=b?'#1D9E75':'#378ADD';ctx.fillText(b,(i*spb+spb/2)/N*W-3,12);});}
+  const r2=getCtx('c-fsk-zoom',150);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,sig.slice(0,3*spb),W,H,'#534AB7',1.8,1/0.38);ctx.font='10px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('f1='+f1+'Hz',4,14);ctx.fillStyle='#1D9E75';ctx.fillText('f2='+f2+'Hz',4,28);}
+  const r3=getCtx('c-fsk-spec',150);if(r3){const{ctx,W,H}=r3;ctx.clearRect(0,0,W,H);const maxF=fc+fd*4+rb*2;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-18);ctx.lineTo(W,H-18);ctx.stroke();[[f1,'rgba(55,138,221,0.6)'],[f2,'rgba(29,158,117,0.6)']].forEach(([f,c])=>{for(let freq=0;freq<maxF;freq+=0.2){const x=(freq/maxF)*(W-10)+5,arg=(freq-f)/rb,mag=Math.max(arg===0?1:Math.pow(Math.sin(Math.PI*arg)/(Math.PI*arg),2),0),bh=mag*(H-26)*0.85;if(bh<0.2)continue;ctx.fillStyle=c;ctx.fillRect(x-1,H-18-bh,2,bh);}});ctx.font='10px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText(f1+'Hz',(f1/maxF)*(W-10)+2,H-4);ctx.fillStyle='#1D9E75';ctx.fillText(f2+'Hz',(f2/maxF)*(W-10)+2,H-4);}
+}
+
+function drawQAM(){
+  const M=+document.getElementById('qam_m').value,noise=+document.getElementById('qam_noise').value;
+  document.getElementById('qam_noisev').textContent=noise.toFixed(2);
+  const sqM=Math.sqrt(M),levels=Array.from({length:sqM},(_,i)=>2*i-(sqM-1)),norm=Math.sqrt((M-1)*2/3);
+  const pts=[];for(let i=0;i<sqM;i++)for(let j=0;j<sqM;j++)pts.push([levels[j]/norm,levels[i]/norm]);
+  const r1=getCtx('c-qam-const',240);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);const cx=W/2,cy=H/2,sc=Math.min(W,H)*0.38;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(cx-sc*1.2,cy);ctx.lineTo(cx+sc*1.2,cy);ctx.moveTo(cx,cy-sc*1.2);ctx.lineTo(cx,cy+sc*1.2);ctx.stroke();pts.forEach(p=>{const x=cx+p[0]*sc,y=cy-p[1]*sc;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.arc(x,y,M<=16?8:5,0,Math.PI*2);ctx.stroke();});const nRx=Math.min(M*8,200);for(let i=0;i<nRx;i++){const p=pts[Math.floor(Math.random()*pts.length)];const x=cx+p[0]*sc+noise*sc*randn(),y=cy-p[1]*sc+noise*sc*randn();ctx.fillStyle=M===4?'#534AB7':M===16?'#378ADD':'#1D9E75';ctx.globalAlpha=0.7;ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText('I',cx+sc*1.1,cy+12);ctx.fillText('Q',cx+4,cy-sc*1.1);}
+  const bps=Math.log2(M);document.getElementById('qam-info').textContent=M+' / '+bps+' bits';document.getElementById('qam-eff').textContent=bps+' bit/s/Hz';
+}
+
+function drawCmp(){
+  const r1=getCtx('c-cmp-bar',200);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);const schemes=[{n:'BPSK',bps:1},{n:'QPSK',bps:2},{n:'16-QAM',bps:4},{n:'64-QAM',bps:6},{n:'FSK',bps:0.8}];const maxBPS=6,bw=(W-40)/schemes.length,pad=10;schemes.forEach((s,i)=>{const x=40+i*bw+pad/2,bh=(s.bps/maxBPS)*(H-50);ctx.fillStyle=COLORS[i];ctx.fillRect(x,H-30-bh,bw-pad,bh);ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText(s.n,x+(bw-pad)/2-14,H-14);ctx.fillText(s.bps.toFixed(1),x+(bw-pad)/2-8,H-30-bh-4);});[0,2,4,6].forEach(v=>{const y=H-30-(v/maxBPS)*(H-50);ctx.strokeStyle=BC();ctx.lineWidth=0.3;ctx.beginPath();ctx.moveTo(36,y);ctx.lineTo(W,y);ctx.stroke();ctx.font='9px sans-serif';ctx.fillStyle=SC();ctx.fillText(v,4,y+4);});}
+  const r2=getCtx('c-cmp-ber',200);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);if(!Math.erfc)Math.erfc=x=>{const t=1/(1+0.3275911*Math.abs(x));const y=1-t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))))*Math.exp(-x*x);return x>=0?1-y:1+y;};function qf(x){return 0.5*Math.erfc(x/Math.sqrt(2));}const snrR=Array.from({length:20},(_,i)=>i),minBER=1e-5,maxSNR=20;ctx.strokeStyle=BC();ctx.lineWidth=0.3;[0,5,10,15,20].forEach(snr=>{const x=(snr/maxSNR)*(W-40)+30;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H-20);ctx.stroke();ctx.font='9px sans-serif';ctx.fillStyle=SC();ctx.fillText(snr,x-6,H-6);});const curves=[{l:'BPSK/QPSK',c:COLORS[0],f:s=>qf(Math.sqrt(2*Math.pow(10,s/10)))},{l:'16-QAM',c:COLORS[1],f:s=>1.5*qf(Math.sqrt(0.8*Math.pow(10,s/10)))},{l:'64-QAM',c:COLORS[2],f:s=>7/3*qf(Math.sqrt(2/7*Math.pow(10,s/10)))},{l:'FSK',c:COLORS[3],f:s=>qf(Math.sqrt(Math.pow(10,s/10)))}];curves.forEach((c,ci)=>{ctx.strokeStyle=c.c;ctx.lineWidth=1.5;ctx.beginPath();let first=true;snrR.forEach(snr=>{const ber=Math.max(c.f(snr),minBER),x=(snr/maxSNR)*(W-40)+30,y=(1-Math.log10(ber)/Math.log10(minBER))*(H-30)+5;first?ctx.moveTo(x,y):ctx.lineTo(x,y);first=false;});ctx.stroke();ctx.font='10px sans-serif';ctx.fillStyle=c.c;ctx.fillText(c.l,W-85,20+ci*16);});ctx.save();ctx.rotate(-Math.PI/2);ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText('BER',-H/2-10,12);ctx.restore();ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText('Eb/N0 (dB)',W/2-20,H);}
+}
+
+function setMode(m){curMode=m;['bpsk','qpsk','fsk','qam','cmp'].forEach((x,i)=>{document.getElementById('mode-'+x).style.display=x===m?'':'none';document.querySelectorAll('.tab')[i].className='tab'+(x===m?' active':'');});if(theoryOpen){document.getElementById('theoryPanel').innerHTML=buildHTML(m);}if(m==='bpsk')drawBPSK();if(m==='qpsk')drawQPSK();if(m==='fsk')drawFSK();if(m==='qam')drawQAM();if(m==='cmp')drawCmp();}
+drawBPSK();
+</script>
+</body>
+</html>

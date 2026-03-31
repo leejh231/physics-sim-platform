@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM / DM / ADM — physics-sim-platform</title>
+<style>
+  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.12);--text:#1a1a1a;--text2:#666;--info-bg:#E6F1FB;--info:#185FA5;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.12);--text:#e8e8e8;--text2:#999;--info-bg:#0c2a40;--info:#5aabf0;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
+  nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+  nav a{font-size:13px;color:var(--text2);text-decoration:none;}nav a:hover{color:var(--text);}
+  .sep{color:var(--border);}.cur{color:var(--text);font-weight:500;}
+  .container{max-width:860px;margin:0 auto;padding:24px 16px;}
+  h1{font-size:22px;font-weight:500;margin-bottom:4px;}.subtitle{font-size:14px;color:var(--text2);margin-bottom:24px;}
+  .panel{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .lbl{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .row label{font-size:13px;color:var(--text2);width:90px;flex-shrink:0;}
+  .row input[type=range]{flex:1;accent-color:#534AB7;}
+  .val{font-size:13px;font-weight:500;min-width:56px;text-align:right;}
+  canvas{width:100%;display:block;}
+  .tab-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
+  .tab{font-size:12px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;}
+  .tab.active{background:var(--bg2);color:var(--text);font-weight:500;}
+  .theory-btn{font-size:12px;padding:4px 12px;border-radius:8px;border:1px solid var(--info);background:transparent;color:var(--info);cursor:pointer;font-family:inherit;margin-left:auto;}
+  .theory-btn.open{background:var(--info-bg);}
+  .theory-box{background:var(--bg2);border-radius:12px;border:1px solid var(--border);padding:16px;margin-bottom:10px;display:none;}
+  .theory-box.show{display:block;}
+  .theory-box h3{font-size:14px;font-weight:500;margin-bottom:12px;}
+  .ts{margin-bottom:14px;}.ts-lbl{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+  .eq{font-family:'SF Mono',Consolas,monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;line-height:1.7;margin-bottom:5px;}
+  .tt{font-size:13px;color:var(--text2);line-height:1.7;}
+  .code-ref{font-family:'SF Mono',Consolas,monospace;font-size:12px;background:var(--bg);border-left:2px solid #534AB7;padding:8px 12px;border-radius:0 8px 8px 0;color:var(--text2);margin-top:6px;line-height:1.6;}
+  .metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+  .metric{background:var(--bg2);border-radius:8px;padding:8px 10px;}.m-label{font-size:11px;color:var(--text2);}.m-val{font-size:14px;font-weight:500;margin-top:2px;}
+  .note{font-size:12px;color:var(--text2);margin-top:8px;padding:8px 12px;background:var(--bg2);border-radius:8px;line-height:1.6;}
+  .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;}
+  .b-blue{background:#E6F1FB;color:#185FA5;}.b-purple{background:#EEEDFE;color:#3C3489;}.b-green{background:#EAF3DE;color:#3B6D11;}.b-amber{background:#FAEEDA;color:#854F0B;}
+</style>
+</head>
+<body>
+<nav>
+  <a href="../../index.html">physics-sim-platform</a><span class="sep">/</span>
+  <a href="../index.html">signals</a><span class="sep">/</span>
+  <span class="cur">03 PM / DM / ADM</span>
+</nav>
+<div class="container">
+  <h1>PM / DM / ADM</h1>
+  <p class="subtitle">위상 변조 · 델타 변조 · 적응형 델타 변조</p>
+  <div class="tab-bar">
+    <button class="tab active" onclick="setMode('pm')">PM</button>
+    <button class="tab" onclick="setMode('cmp3')">AM/PM/FM 비교</button>
+    <button class="tab" onclick="setMode('dm')">DM</button>
+    <button class="tab" onclick="setMode('adm')">DM vs ADM</button>
+    <button class="theory-btn" id="theoryBtn" onclick="toggleTheory()">이론 보기</button>
+  </div>
+  <div id="theoryPanel" class="theory-box"></div>
+
+  <div id="mode-pm">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">메시지</div>
+        <div class="row"><label>주파수 fm</label><input type="range" min="1" max="10" value="3" step="1" id="pm_fm" oninput="drawPM()"><span class="val" id="pm_fmv">3 Hz</span></div>
+        <div class="row"><label>진폭 Am</label><input type="range" min="0.1" max="2" value="1" step="0.1" id="pm_am" oninput="drawPM()"><span class="val" id="pm_amv">1.0</span></div>
+      </div>
+      <div class="panel"><div class="lbl">PM 파라미터</div>
+        <div class="row"><label>반송파 fc</label><input type="range" min="10" max="35" value="20" step="1" id="pm_fc" oninput="drawPM()"><span class="val" id="pm_fcv">20 Hz</span></div>
+        <div class="row"><label>위상 편이 kp</label><input type="range" min="0.1" max="5" value="2" step="0.1" id="pm_kp" oninput="drawPM()"><span class="val" id="pm_kpv">2.0 rad</span></div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">메시지 <span class="badge b-blue">파란색</span> / PM <span class="badge b-purple">보라색</span></div><div style="position:relative;height:140px;"><canvas id="c-pm-time"></canvas></div></div>
+    <div class="panel"><div class="lbl">순간 위상 φ(t) = kp·m(t)</div><div style="position:relative;height:80px;"><canvas id="c-pm-phase"></canvas></div>
+      <div class="metric-row">
+        <div class="metric"><div class="m-label">최대 위상 편이</div><div class="m-val" id="pm-m1">—</div></div>
+        <div class="metric"><div class="m-label">변조지수 βp</div><div class="m-val" id="pm-m2">—</div></div>
+        <div class="metric"><div class="m-label">카슨 BW</div><div class="m-val" id="pm-m3">—</div></div>
+      </div>
+      <div class="note">PM과 FM의 쌍대 관계: PM에 m(t)의 미분을 입력하면 FM이 된다. FM에 m(t)의 적분을 입력하면 PM이 된다.</div>
+    </div>
+  </div>
+
+  <div id="mode-cmp3" style="display:none;">
+    <div class="panel"><div class="lbl">공통 파라미터</div>
+      <div class="row"><label>메시지 fm</label><input type="range" min="1" max="8" value="2" step="1" id="c3_fm" oninput="drawCmp3()"><span class="val" id="c3_fmv">2 Hz</span></div>
+      <div class="row"><label>반송파 fc</label><input type="range" min="12" max="30" value="18" step="1" id="c3_fc" oninput="drawCmp3()"><span class="val" id="c3_fcv">18 Hz</span></div>
+    </div>
+    <div class="panel"><div class="lbl">메시지 m(t)</div><div style="position:relative;height:65px;"><canvas id="c3-msg"></canvas></div></div>
+    <div class="panel"><div class="lbl">AM <span class="badge b-blue">파란색</span></div><div style="position:relative;height:80px;"><canvas id="c3-am"></canvas></div></div>
+    <div class="panel"><div class="lbl">PM <span class="badge b-purple">보라색</span></div><div style="position:relative;height:80px;"><canvas id="c3-pm"></canvas></div></div>
+    <div class="panel"><div class="lbl">FM <span class="badge b-green">초록색</span></div><div style="position:relative;height:80px;"><canvas id="c3-fm"></canvas></div></div>
+    <div class="note">AM은 선형 변조, PM과 FM은 각도 변조(Angle Modulation). PM과 FM은 수학적 쌍대 관계.</div>
+  </div>
+
+  <div id="mode-dm" style="display:none;">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">입력 신호</div>
+        <div class="row"><label>주파수 fm</label><input type="range" min="1" max="8" value="2" step="1" id="dm_fm" oninput="drawDM()"><span class="val" id="dm_fmv">2 Hz</span></div>
+        <div class="row"><label>진폭 Am</label><input type="range" min="0.5" max="3" value="1.5" step="0.1" id="dm_am" oninput="drawDM()"><span class="val" id="dm_amv">1.5</span></div>
+      </div>
+      <div class="panel"><div class="lbl">DM 파라미터</div>
+        <div class="row"><label>샘플링 fs</label><input type="range" min="20" max="100" value="40" step="5" id="dm_fs" oninput="drawDM()"><span class="val" id="dm_fsv">40 Hz</span></div>
+        <div class="row"><label>스텝 크기 δ</label><input type="range" min="0.05" max="0.8" value="0.2" step="0.05" id="dm_delta" oninput="drawDM()"><span class="val" id="dm_deltav">0.20</span></div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">원본 <span class="badge b-blue">파란색</span> / 계단 근사 <span class="badge b-amber">주황색</span></div><div style="position:relative;height:150px;"><canvas id="c-dm-sig"></canvas></div></div>
+    <div class="panel"><div class="lbl">DM 비트 스트림</div><div style="position:relative;height:65px;"><canvas id="c-dm-bits"></canvas></div>
+      <div class="metric-row">
+        <div class="metric"><div class="m-label">비트율</div><div class="m-val" id="dm-m1">—</div></div>
+        <div class="metric"><div class="m-label">과부하</div><div class="m-val" id="dm-m2">—</div></div>
+        <div class="metric"><div class="m-label">스텝 δ</div><div class="m-val" id="dm-m3">—</div></div>
+      </div>
+      <div class="note">과부하 왜곡 조건: δ·fs &lt; 2π·fm·Am. δ를 키우거나 fs를 높이면 해결. 두 조건이 상충 → ADM 필요.</div>
+    </div>
+  </div>
+
+  <div id="mode-adm" style="display:none;">
+    <div class="panel"><div class="lbl">파라미터</div>
+      <div class="row"><label>주파수 fm</label><input type="range" min="1" max="6" value="2" step="1" id="adm_fm" oninput="drawADM()"><span class="val" id="adm_fmv">2 Hz</span></div>
+      <div class="row"><label>샘플링 fs</label><input type="range" min="20" max="80" value="40" step="5" id="adm_fs" oninput="drawADM()"><span class="val" id="adm_fsv">40 Hz</span></div>
+      <div class="row"><label>기본 스텝 δ₀</label><input type="range" min="0.05" max="0.5" value="0.15" step="0.05" id="adm_d0" oninput="drawADM()"><span class="val" id="adm_d0v">0.15</span></div>
+    </div>
+    <div class="panel"><div class="lbl">원본 신호</div><div style="position:relative;height:65px;"><canvas id="c-adm-msg"></canvas></div></div>
+    <div class="panel"><div class="lbl">DM — 고정 스텝 <span class="badge b-amber">주황색</span></div><div style="position:relative;height:100px;"><canvas id="c-adm-dm"></canvas></div></div>
+    <div class="panel"><div class="lbl">ADM — 적응형 스텝 <span class="badge b-green">초록색</span></div><div style="position:relative;height:100px;"><canvas id="c-adm-adm"></canvas></div>
+      <div class="note">ADM: 연속 같은 비트 → 스텝 증가(과부하 방지), 교번 비트 → 스텝 감소(입상 노이즈 감소).</div>
+    </div>
+  </div>
+</div>
+<script>
+const N=1024,FS=200,Ts=1/FS;
+const t=Array.from({length:N},(_,i)=>i*Ts);
+let curMode='pm',theoryOpen=false;
+const isDark=()=>window.matchMedia('(prefers-color-scheme:dark)').matches;
+const TC=()=>isDark()?'#e8e8e8':'#1a1a1a';
+const SC=()=>isDark()?'#888':'#888';
+const BC=()=>isDark()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';
+
+const theories={
+  pm:{title:'PM (Phase Modulation) — 위상 변조',sections:[
+    {label:'핵심 수식',eqs:['s(t) = Ac·cos(2πfc·t + kp·m(t))','최대 위상 편이: Δφ = kp·Am  [rad]','변조지수: βp = kp·Am','카슨 BW: 2(βp+1)·fm']},
+    {label:'FM과 쌍대 관계',text:'PM: 위상 ∝ m(t). FM: 위상 ∝ ∫m dt. PM 변조기에 dm/dt를 입력하면 FM 신호가 나온다(간접 FM 생성).'},
+    {label:'구현',code:'s(t) = cos(2π*fc*t + kp*msg[i])'}
+  ]},
+  cmp3:{title:'선형 변조 vs 각도 변조',sections:[
+    {label:'수식 비교',eqs:['AM: s = [1+μ·m_n]·cos(2πfc·t)  ← 선형','PM: s = cos(2πfc·t + kp·m(t))  ← 각도','FM: s = cos(2πfc·t + 2πkf·∫m dt)  ← 각도']},
+    {label:'핵심 차이',text:'AM(선형)은 스펙트럼 분석이 쉬움. PM/FM(각도)은 비선형이라 이론상 무한 측파대. 각도 변조는 진폭 일정 → 진폭 잡음에 강함.'},
+    {label:'잡음 성능',eqs:['AM SNR: μ²/(2+μ²) · SNR_baseband','FM SNR: 3β²(β+1) · SNR_baseband  → β↑일수록 FM 유리']}
+  ]},
+  dm:{title:'DM (Delta Modulation) — 델타 변조',sections:[
+    {label:'알고리즘',eqs:['b[n] = 1 if m(nTs) ≥ σ[n-1], else 0','σ[n] = σ[n-1] + δ·(2b[n]-1)','비트율 = fs  (1비트/샘플)']},
+    {label:'두 가지 왜곡',text:'과부하 왜곡: δ·fs < max|dm/dt|이면 계단이 신호를 못 따라감. 입상 노이즈: 신호 완만 시 계단이 ±δ 진동. 두 조건 상충 → 고정 δ로 동시 해결 불가.'},
+    {label:'구현',code:'approx += bit===1 ? delta : -delta'}
+  ]},
+  adm:{title:'ADM (Adaptive Delta Modulation)',sections:[
+    {label:'적응 규칙',eqs:['연속 같은 비트: δ↑ = min(δ·1.5, δmax)','교번 비트:     δ↓ = max(δ·0.7, δmin)']},
+    {label:'개념',text:'스텝 크기를 신호에 맞게 적응적으로 조절. 경사 구간에서 스텝↑(과부하 방지), 완만 구간에서 스텝↓(입상 노이즈 감소). CVSD 등 음성 코딩의 기반.'},
+    {label:'구현',code:'if(bit===prevBit){ sameCount++\n  if(sameCount>=2) delta=min(delta*1.5,dmax)\n}else{ sameCount=0; delta=max(delta*0.7,dmin) }'}
+  ]}
+};
+
+function buildHTML(m){const th=theories[m];let h=`<h3>${th.title}</h3>`;th.sections.forEach(s=>{h+=`<div class="ts"><div class="ts-lbl">${s.label}</div>`;if(s.eqs)s.eqs.forEach(e=>{h+=`<div class="eq">${e}</div>`;});if(s.text)h+=`<div class="tt">${s.text}</div>`;if(s.code)h+=`<div class="code-ref">${s.code.replace(/\n/g,'<br>')}</div>`;h+=`</div>`;});return h;}
+function toggleTheory(){theoryOpen=!theoryOpen;const p=document.getElementById('theoryPanel'),b=document.getElementById('theoryBtn');p.innerHTML=buildHTML(curMode);p.className='theory-box'+(theoryOpen?' show':'');b.textContent=theoryOpen?'이론 닫기':'이론 보기';b.className='theory-btn'+(theoryOpen?' open':'');}
+function getCtx(id,h){const el=document.getElementById(id);if(!el)return null;const dpr=window.devicePixelRatio||1;const W=el.parentElement.getBoundingClientRect().width||500;el.width=W*dpr;el.height=h*dpr;const ctx=el.getContext('2d');ctx.scale(dpr,dpr);return{ctx,W,H:h};}
+function axes(ctx,W,H){ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();}
+function line(ctx,sig,W,H,color,lw,sc){const s=sc||Math.max(...sig.map(Math.abs),0.01);ctx.strokeStyle=color;ctx.lineWidth=lw||1.5;ctx.beginPath();sig.forEach((v,i)=>{const x=i/N*W,y=H/2-v/s*H*0.4;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
+
+function drawPM(){
+  const fm=+document.getElementById('pm_fm').value,Am=+document.getElementById('pm_am').value,fc=+document.getElementById('pm_fc').value,kp=+document.getElementById('pm_kp').value;
+  document.getElementById('pm_fmv').textContent=fm+' Hz';document.getElementById('pm_amv').textContent=Am.toFixed(1);document.getElementById('pm_fcv').textContent=fc+' Hz';document.getElementById('pm_kpv').textContent=kp.toFixed(1)+' rad';
+  const msg=t.map(ti=>Am*Math.sin(2*Math.PI*fm*ti));
+  const s=t.map((ti,i)=>Math.cos(2*Math.PI*fc*ti+kp*msg[i]));
+  const phase=t.map((_,i)=>kp*msg[i]);
+  const r1=getCtx('c-pm-time',140);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,msg,W,H,'#378ADD',1.2,Am/0.38);line(ctx,s,W,H,'#534AB7',1.8,1/0.38);ctx.font='11px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('m(t)',6,14);ctx.fillStyle='#534AB7';ctx.fillText('PM s(t)',6,28);}
+  const r2=getCtx('c-pm-phase',80);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,phase,W,H,'#534AB7',1.5,kp*Am/0.38);ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText('+'+(kp*Am).toFixed(1)+'rad',4,14);ctx.fillText('-'+(kp*Am).toFixed(1)+'rad',4,H-4);}
+  const bp=kp*Am;document.getElementById('pm-m1').textContent=(kp*Am).toFixed(2)+' rad';document.getElementById('pm-m2').textContent=bp.toFixed(2);document.getElementById('pm-m3').textContent=(2*(bp+1)*fm).toFixed(1)+' Hz';
+}
+
+function drawCmp3(){
+  const fm=+document.getElementById('c3_fm').value,fc=+document.getElementById('c3_fc').value;
+  document.getElementById('c3_fmv').textContent=fm+' Hz';document.getElementById('c3_fcv').textContent=fc+' Hz';
+  const msg=t.map(ti=>Math.sin(2*Math.PI*fm*ti));
+  const am=t.map((ti,i)=>(1+0.8*msg[i])*Math.cos(2*Math.PI*fc*ti));
+  const pm=t.map((ti,i)=>Math.cos(2*Math.PI*fc*ti+2*msg[i]));
+  const fm_s=t.map(ti=>Math.cos(2*Math.PI*fc*ti-(4/(2*Math.PI*fm))*Math.cos(2*Math.PI*fm*ti)));
+  const r0=getCtx('c3-msg',65);if(r0){const{ctx,W,H}=r0;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,msg,W,H,SC(),1.5,1/0.38);}
+  const r1=getCtx('c3-am',80);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,am,W,H,'#378ADD',1.5,1/0.38);}
+  const r2=getCtx('c3-pm',80);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,pm,W,H,'#534AB7',1.5,1/0.38);}
+  const r3=getCtx('c3-fm',80);if(r3){const{ctx,W,H}=r3;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,fm_s,W,H,'#1D9E75',1.5,1/0.38);}
+}
+
+function runDM(sig,fsamp,delta){const step=Math.round(FS/fsamp);let approx=0;const approxArr=new Array(N).fill(0),bits=[];for(let i=0;i<N;i+=step){const bit=sig[i]>=approx?1:0;bits.push(bit);approx+=bit===1?delta:-delta;const end=Math.min(i+step,N);for(let j=i;j<end;j++)approxArr[j]=approx;}return{approxArr,bits};}
+
+function drawDM(){
+  const fm=+document.getElementById('dm_fm').value,Am=+document.getElementById('dm_am').value,fsamp=+document.getElementById('dm_fs').value,delta=+document.getElementById('dm_delta').value;
+  document.getElementById('dm_fmv').textContent=fm+' Hz';document.getElementById('dm_amv').textContent=Am.toFixed(1);document.getElementById('dm_fsv').textContent=fsamp+' Hz';document.getElementById('dm_deltav').textContent=delta.toFixed(2);
+  const msg=t.map(ti=>Am*Math.sin(2*Math.PI*fm*ti));
+  const{approxArr,bits}=runDM(msg,fsamp,delta);
+  const overload=delta*fsamp<2*Math.PI*fm*Am;
+  const r1=getCtx('c-dm-sig',150);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);ctx.strokeStyle='#BA7517';ctx.lineWidth=1.5;ctx.beginPath();approxArr.forEach((v,i)=>{const x=i/N*W,y=H/2-v/Am*H*0.38;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();line(ctx,msg,W,H,'#378ADD',1.5,Am/0.38);ctx.font='11px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('m(t)',6,14);ctx.fillStyle='#BA7517';ctx.fillText('DM',6,28);}
+  const r2=getCtx('c-dm-bits',65);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);const bw=W/bits.length;bits.forEach((b,i)=>{const ol=i>=4&&bits[i]===bits[i-1]&&bits[i-1]===bits[i-2]&&bits[i-2]===bits[i-3];ctx.fillStyle=ol?'#D85A30':(b===1?'#1D9E75':'#534AB7');ctx.fillRect(i*bw+1,b===1?4:H/2+2,bw-2,b===1?H/2-6:H/2-4);});ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();}
+  document.getElementById('dm-m1').textContent=fsamp+' bps';document.getElementById('dm-m2').textContent=overload?'발생':'정상';document.getElementById('dm-m3').textContent=delta.toFixed(2);
+}
+
+function runADM(sig,fsamp,delta0){const step=Math.round(FS/fsamp);let approx=0,delta=delta0,prevBit=-1,sameCount=0;const approxArr=new Array(N).fill(0);for(let i=0;i<N;i+=step){const bit=sig[i]>=approx?1:0;if(bit===prevBit){sameCount++;if(sameCount>=2)delta=Math.min(delta*1.5,delta0*6);}else{sameCount=0;delta=Math.max(delta*0.7,delta0);}approx+=bit===1?delta:-delta;prevBit=bit;const end=Math.min(i+step,N);for(let j=i;j<end;j++)approxArr[j]=approx;}return approxArr;}
+
+function drawADM(){
+  const fm=+document.getElementById('adm_fm').value,fsamp=+document.getElementById('adm_fs').value,d0=+document.getElementById('adm_d0').value;
+  document.getElementById('adm_fmv').textContent=fm+' Hz';document.getElementById('adm_fsv').textContent=fsamp+' Hz';document.getElementById('adm_d0v').textContent=d0.toFixed(2);
+  const Am=1.5,msg=t.map(ti=>Am*Math.sin(2*Math.PI*fm*ti));
+  const dmArr=runDM(msg,fsamp,d0).approxArr,admArr=runADM(msg,fsamp,d0);
+  const r0=getCtx('c-adm-msg',65);if(r0){const{ctx,W,H}=r0;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,msg,W,H,SC(),1.5,Am/0.38);}
+  const r1=getCtx('c-adm-dm',100);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,msg,W,H,'rgba(55,138,221,0.3)',1,Am/0.38);ctx.strokeStyle='#BA7517';ctx.lineWidth=1.8;ctx.beginPath();dmArr.forEach((v,i)=>{const x=i/N*W,y=H/2-v/Am*H*0.38;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
+  const r2=getCtx('c-adm-adm',100);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,msg,W,H,'rgba(55,138,221,0.3)',1,Am/0.38);ctx.strokeStyle='#1D9E75';ctx.lineWidth=1.8;ctx.beginPath();admArr.forEach((v,i)=>{const x=i/N*W,y=H/2-v/Am*H*0.38;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
+}
+
+function setMode(m){curMode=m;['pm','cmp3','dm','adm'].forEach((x,i)=>{document.getElementById('mode-'+x).style.display=x===m?'':'none';document.querySelectorAll('.tab')[i].className='tab'+(x===m?' active':'');});if(theoryOpen){document.getElementById('theoryPanel').innerHTML=buildHTML(m);}if(m==='pm')drawPM();if(m==='cmp3')drawCmp3();if(m==='dm')drawDM();if(m==='adm')drawADM();}
+drawPM();
+</script>
+</body>
+</html>

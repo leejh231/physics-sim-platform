@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>샘플링 & 나이퀴스트 — physics-sim-platform</title>
+<style>
+  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.12);--text:#1a1a1a;--text2:#666;--info-bg:#E6F1FB;--info:#185FA5;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.12);--text:#e8e8e8;--text2:#999;--info-bg:#0c2a40;--info:#5aabf0;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
+  nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+  nav a{font-size:13px;color:var(--text2);text-decoration:none;}nav a:hover{color:var(--text);}
+  .sep{color:var(--border);}.cur{color:var(--text);font-weight:500;}
+  .container{max-width:860px;margin:0 auto;padding:24px 16px;}
+  h1{font-size:22px;font-weight:500;margin-bottom:4px;}.subtitle{font-size:14px;color:var(--text2);margin-bottom:24px;}
+  .panel{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .lbl{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .row label{font-size:13px;color:var(--text2);width:100px;flex-shrink:0;}
+  .row input[type=range]{flex:1;accent-color:#534AB7;}
+  .val{font-size:13px;font-weight:500;min-width:60px;text-align:right;}
+  canvas{width:100%;display:block;}
+  .tab-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
+  .tab{font-size:12px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;}
+  .tab.active{background:var(--bg2);color:var(--text);font-weight:500;}
+  .theory-btn{font-size:12px;padding:4px 12px;border-radius:8px;border:1px solid var(--info);background:transparent;color:var(--info);cursor:pointer;font-family:inherit;margin-left:auto;}
+  .theory-btn.open{background:var(--info-bg);}
+  .theory-box{background:var(--bg2);border-radius:12px;border:1px solid var(--border);padding:16px;margin-bottom:10px;display:none;}
+  .theory-box.show{display:block;}
+  .theory-box h3{font-size:14px;font-weight:500;margin-bottom:12px;}
+  .ts{margin-bottom:14px;}.ts-lbl{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+  .eq{font-family:'SF Mono',Consolas,monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;line-height:1.7;margin-bottom:5px;}
+  .tt{font-size:13px;color:var(--text2);line-height:1.7;}
+  .code-ref{font-family:'SF Mono',Consolas,monospace;font-size:12px;background:var(--bg);border-left:2px solid #534AB7;padding:8px 12px;border-radius:0 8px 8px 0;color:var(--text2);margin-top:6px;line-height:1.6;}
+  .metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+  .metric{background:var(--bg2);border-radius:8px;padding:8px 10px;}.m-label{font-size:11px;color:var(--text2);}.m-val{font-size:14px;font-weight:500;margin-top:2px;}
+  .note{font-size:12px;color:var(--text2);margin-top:8px;padding:8px 12px;background:var(--bg2);border-radius:8px;line-height:1.6;}
+  .ok{color:#1D9E75;}.bad{color:#D85A30;}
+</style>
+</head>
+<body>
+<nav>
+  <a href="../../index.html">physics-sim-platform</a><span class="sep">/</span>
+  <a href="../index.html">signals</a><span class="sep">/</span>
+  <span class="cur">04 샘플링 & 나이퀴스트</span>
+</nav>
+<div class="container">
+  <h1>샘플링 & 나이퀴스트 정리</h1>
+  <p class="subtitle">샘플링 · 에일리어싱 · sinc 재구성 · 스펙트럼 복제</p>
+  <div class="tab-bar">
+    <button class="tab active" onclick="setMode('sampling')">샘플링</button>
+    <button class="tab" onclick="setMode('alias')">에일리어싱</button>
+    <button class="tab" onclick="setMode('reconstruct')">재구성</button>
+    <button class="tab" onclick="setMode('spectrum')">스펙트럼 복제</button>
+    <button class="theory-btn" id="theoryBtn" onclick="toggleTheory()">이론 보기</button>
+  </div>
+  <div id="theoryPanel" class="theory-box"></div>
+
+  <div id="mode-sampling">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">신호</div><div class="row"><label>주파수 f</label><input type="range" min="1" max="20" value="5" step="1" id="s_f" oninput="drawSampling()"><span class="val" id="s_fv">5 Hz</span></div></div>
+      <div class="panel"><div class="lbl">샘플링</div><div class="row"><label>샘플링 fs</label><input type="range" min="3" max="60" value="20" step="1" id="s_fs" oninput="drawSampling()"><span class="val" id="s_fsv">20 Hz</span></div></div>
+    </div>
+    <div class="panel"><div class="lbl">원본(파란색) / 샘플(빨간 점)</div><div style="position:relative;height:150px;"><canvas id="c-s-sig"></canvas></div>
+      <div class="metric-row">
+        <div class="metric"><div class="m-label">신호 주파수</div><div class="m-val" id="s-m1">—</div></div>
+        <div class="metric"><div class="m-label">나이퀴스트</div><div class="m-val" id="s-m2">—</div></div>
+        <div class="metric"><div class="m-label">상태</div><div class="m-val" id="s-m3">—</div></div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">샘플된 신호 (임펄스 열)</div><div style="position:relative;height:100px;"><canvas id="c-s-imp"></canvas></div>
+      <div class="note">나이퀴스트 정리: fs ≥ 2·fmax 이어야 원본 신호를 완전히 복원할 수 있다.</div>
+    </div>
+  </div>
+
+  <div id="mode-alias" style="display:none;">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">원본 신호</div><div class="row"><label>주파수 f</label><input type="range" min="1" max="40" value="13" step="1" id="a_f" oninput="drawAlias()"><span class="val" id="a_fv">13 Hz</span></div></div>
+      <div class="panel"><div class="lbl">샘플링</div><div class="row"><label>샘플링 fs</label><input type="range" min="5" max="50" value="10" step="1" id="a_fs" oninput="drawAlias()"><span class="val" id="a_fsv">10 Hz</span></div></div>
+    </div>
+    <div class="panel"><div class="lbl">원본(파란색) / 에일리어스(빨간색) / 샘플(점)</div><div style="position:relative;height:160px;"><canvas id="c-a-sig"></canvas></div>
+      <div class="metric-row">
+        <div class="metric"><div class="m-label">원본 주파수</div><div class="m-val" id="a-m1">—</div></div>
+        <div class="metric"><div class="m-label">에일리어스</div><div class="m-val" id="a-m2">—</div></div>
+        <div class="metric"><div class="m-label">판단</div><div class="m-val" id="a-m3">—</div></div>
+      </div>
+      <div class="note">에일리어스 주파수 = |f - round(f/fs)·fs|. 안티에일리어싱 LPF로 fs/2 이상 성분을 미리 제거해야 한다.</div>
+    </div>
+  </div>
+
+  <div id="mode-reconstruct" style="display:none;">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">신호</div><div class="row"><label>주파수 f</label><input type="range" min="1" max="15" value="4" step="1" id="r_f" oninput="drawReconstruct()"><span class="val" id="r_fv">4 Hz</span></div></div>
+      <div class="panel"><div class="lbl">샘플링</div><div class="row"><label>샘플링 fs</label><input type="range" min="5" max="50" value="20" step="1" id="r_fs" oninput="drawReconstruct()"><span class="val" id="r_fsv">20 Hz</span></div></div>
+    </div>
+    <div class="panel"><div class="lbl">원본(파란) / 샘플(점) / sinc 재구성(초록)</div><div style="position:relative;height:160px;"><canvas id="c-r-sig"></canvas></div>
+      <div class="note">이상적 재구성: x(t) = Σ x[n]·sinc(fs·t - n). fs ≥ 2f 이면 원본과 완벽하게 일치한다.</div>
+    </div>
+    <div class="panel"><div class="lbl">재구성 오차</div><div style="position:relative;height:80px;"><canvas id="c-r-err"></canvas></div></div>
+  </div>
+
+  <div id="mode-spectrum" style="display:none;">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">신호</div><div class="row"><label>최대 주파수 fmax</label><input type="range" min="1" max="15" value="5" step="1" id="sp_f" oninput="drawSpectrum()"><span class="val" id="sp_fv">5 Hz</span></div></div>
+      <div class="panel"><div class="lbl">샘플링</div><div class="row"><label>샘플링 fs</label><input type="range" min="5" max="40" value="20" step="1" id="sp_fs" oninput="drawSpectrum()"><span class="val" id="sp_fsv">20 Hz</span></div></div>
+    </div>
+    <div class="panel"><div class="lbl">연속 신호 스펙트럼 X(f)</div><div style="position:relative;height:100px;"><canvas id="c-sp-cont"></canvas></div></div>
+    <div class="panel"><div class="lbl">샘플링 후 — fs 간격으로 복제됨</div><div style="position:relative;height:130px;"><canvas id="c-sp-samp"></canvas></div>
+      <div class="note">샘플링은 스펙트럼을 fs 간격으로 복제한다. 겹치지 않으려면 fs ≥ 2·fmax. LPF(차단: fs/2)로 원본 복원.</div>
+    </div>
+  </div>
+</div>
+<script>
+const N=1024,FS=200,Ts=1/FS;
+const t=Array.from({length:N},(_,i)=>i*Ts);
+let curMode='sampling',theoryOpen=false;
+const isDark=()=>window.matchMedia('(prefers-color-scheme:dark)').matches;
+const SC=()=>isDark()?'#888':'#888';
+const BC=()=>isDark()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';
+
+const theories={
+  sampling:{title:'샘플링 정리 (Nyquist-Shannon)',sections:[
+    {label:'핵심 수식',eqs:['나이퀴스트 조건: fs ≥ 2·fmax','나이퀴스트 주파수: fN = fs/2','복원 공식: x(t) = Σ x[n]·sinc(fs·t - n)']},
+    {label:'개념',text:'샘플링 주파수가 최대 주파수의 2배 이상이면 원본을 완벽하게 복원할 수 있다. CD 음질(44.1kHz)은 가청 주파수 20kHz의 약 2.2배로 설계됐다.'},
+    {label:'구현',code:'const step = Math.round(FS_sim / fs_target)\nfor(let i=0; i<N; i+=step) samples.push(sig[i])'}
+  ]},
+  alias:{title:'에일리어싱 (Aliasing)',sections:[
+    {label:'핵심 수식',eqs:['에일리어스 주파수: fa = |f - round(f/fs)·fs|','예) f=13Hz, fs=10Hz → fa = |13-10| = 3Hz','안티에일리어싱: LPF 차단 = fs/2']},
+    {label:'개념',text:'fs < 2f이면 고주파가 저주파처럼 왜곡된다. 영화에서 바퀴가 거꾸로 도는 것처럼 보이는 현상이 에일리어싱의 대표 예. 실제 ADC 앞단에 안티에일리어싱 LPF 필수.'},
+    {label:'구현',code:'const alias_f = Math.abs(f - Math.round(f/fs)*fs)'}
+  ]},
+  reconstruct:{title:'sinc 보간 (이상적 재구성)',sections:[
+    {label:'핵심 수식',eqs:['x(t) = Σ x[n]·sinc(fs·t - n)','sinc(x) = sin(πx)/(πx)','이상적 LPF의 임펄스 응답 = sinc']},
+    {label:'개념',text:'각 샘플에 sinc 함수를 씌워 합산. sinc는 자기 샘플 위치에서만 1이고 다른 위치에서 0. 실제로는 sinc가 무한히 길어 완전 구현 불가 → 윈도우 함수로 근사.'},
+    {label:'구현',code:'function sinc(x){if(Math.abs(x)<1e-8)return 1\n  return Math.sin(Math.PI*x)/(Math.PI*x)}\nconst recon=t.map(ti=>samples.reduce((s,samp)=>s+samp.v*sinc(fs*ti-samp.n),0))'}
+  ]},
+  spectrum:{title:'스펙트럼 복제와 나이퀴스트',sections:[
+    {label:'핵심 수식',eqs:['Xs(f) = fs·Σ X(f - k·fs),  k=0,±1,±2,...','복제본 비겹침: fs ≥ 2·fmax','LPF(차단: fs/2) 통과 → 원본 X(f) 복원']},
+    {label:'개념',text:'샘플링(임펄스 열과의 곱)은 주파수 영역에서 스펙트럼을 fs 간격으로 무한 복제한다. 복제본이 겹치면 에일리어싱 — 복원 불가.'},
+    {label:'구현',code:'// 스펙트럼을 k=-2,-1,0,1,2 위치에 복사해 시각화'}
+  ]}
+};
+
+function buildHTML(m){const th=theories[m];let h=`<h3>${th.title}</h3>`;th.sections.forEach(s=>{h+=`<div class="ts"><div class="ts-lbl">${s.label}</div>`;if(s.eqs)s.eqs.forEach(e=>{h+=`<div class="eq">${e}</div>`;});if(s.text)h+=`<div class="tt">${s.text}</div>`;if(s.code)h+=`<div class="code-ref">${s.code.replace(/\n/g,'<br>')}</div>`;h+=`</div>`;});return h;}
+function toggleTheory(){theoryOpen=!theoryOpen;const p=document.getElementById('theoryPanel'),b=document.getElementById('theoryBtn');p.innerHTML=buildHTML(curMode);p.className='theory-box'+(theoryOpen?' show':'');b.textContent=theoryOpen?'이론 닫기':'이론 보기';b.className='theory-btn'+(theoryOpen?' open':'');}
+function getCtx(id,h){const el=document.getElementById(id);if(!el)return null;const dpr=window.devicePixelRatio||1;const W=el.parentElement.getBoundingClientRect().width||500;el.width=W*dpr;el.height=h*dpr;const ctx=el.getContext('2d');ctx.scale(dpr,dpr);return{ctx,W,H:h};}
+function axes(ctx,W,H){ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();}
+function line(ctx,sig,W,H,color,lw,sc){const s=sc||Math.max(...sig.map(Math.abs),0.01);ctx.strokeStyle=color;ctx.lineWidth=lw||1.5;ctx.beginPath();sig.forEach((v,i)=>{const x=i/N*W,y=H/2-v/s*H*0.4;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
+function sinc(x){if(Math.abs(x)<1e-8)return 1;return Math.sin(Math.PI*x)/(Math.PI*x);}
+
+function drawSampling(){
+  const f=+document.getElementById('s_f').value,fs=+document.getElementById('s_fs').value;
+  document.getElementById('s_fv').textContent=f+' Hz';document.getElementById('s_fsv').textContent=fs+' Hz';
+  const sig=t.map(ti=>Math.sin(2*Math.PI*f*ti));
+  const step=Math.round(FS/fs),samps=[];for(let i=0;i<N;i+=step)samps.push({i,v:sig[i]});
+  const r1=getCtx('c-s-sig',150);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,sig,W,H,'#378ADD',1.5,1/0.38);samps.forEach(s=>{const x=s.i/N*W,y=H/2-s.v*H*0.38;ctx.strokeStyle='#D85A30';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,H/2);ctx.lineTo(x,y);ctx.stroke();ctx.fillStyle='#D85A30';ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fill();});}
+  const r2=getCtx('c-s-imp',100);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);axes(ctx,W,H);samps.forEach(s=>{const x=s.i/N*W,y=H/2-s.v*H*0.38;ctx.strokeStyle='#534AB7';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,H/2);ctx.lineTo(x,y);ctx.stroke();ctx.fillStyle='#534AB7';ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();});}
+  const ok=fs>=2*f;document.getElementById('s-m1').textContent=f+' Hz';document.getElementById('s-m2').textContent=(fs/2)+' Hz';document.getElementById('s-m3').innerHTML=ok?'<span class="ok">정상 ✓</span>':'<span class="bad">에일리어싱!</span>';
+}
+
+function drawAlias(){
+  const f=+document.getElementById('a_f').value,fs=+document.getElementById('a_fs').value;
+  document.getElementById('a_fv').textContent=f+' Hz';document.getElementById('a_fsv').textContent=fs+' Hz';
+  const fa=Math.abs(f-Math.round(f/fs)*fs);
+  const sig=t.map(ti=>Math.sin(2*Math.PI*f*ti));
+  const alias=t.map(ti=>Math.sin(2*Math.PI*fa*ti));
+  const step=Math.round(FS/fs),samps=[];for(let i=0;i<N;i+=step)samps.push({i,v:sig[i]});
+  const r1=getCtx('c-a-sig',160);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,sig,W,H,'#378ADD',1.2,1/0.38);if(fs<2*f)line(ctx,alias,W,H,'#D85A30',1.8,1/0.38);samps.forEach(s=>{const x=s.i/N*W,y=H/2-s.v*H*0.38;ctx.fillStyle='#BA7517';ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fill();});ctx.font='11px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('원본 '+f+'Hz',6,14);if(fs<2*f){ctx.fillStyle='#D85A30';ctx.fillText('에일리어스 '+fa+'Hz',6,28);}}
+  const ok=fs>=2*f;document.getElementById('a-m1').textContent=f+' Hz';document.getElementById('a-m2').textContent=ok?'없음':fa+' Hz';document.getElementById('a-m3').innerHTML=ok?'<span class="ok">정상 ✓</span>':'<span class="bad">에일리어싱!</span>';
+}
+
+function drawReconstruct(){
+  const f=+document.getElementById('r_f').value,fs=+document.getElementById('r_fs').value;
+  document.getElementById('r_fv').textContent=f+' Hz';document.getElementById('r_fsv').textContent=fs+' Hz';
+  const sig=t.map(ti=>Math.sin(2*Math.PI*f*ti));
+  const step=Math.round(FS/fs),samps=[];let n=0;for(let i=0;i<N;i+=step){samps.push({i,v:sig[i],n:n});n++;}
+  const recon=t.map((ti)=>samps.reduce((s,samp)=>s+samp.v*sinc(fs*ti-samp.n),0));
+  const err=sig.map((v,i)=>v-recon[i]);
+  const r1=getCtx('c-r-sig',160);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,sig,W,H,'#378ADD',1.2,1/0.38);line(ctx,recon,W,H,'#1D9E75',2,1/0.38);samps.forEach(s=>{const x=s.i/N*W,y=H/2-s.v*H*0.38;ctx.fillStyle='#BA7517';ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fill();});ctx.font='11px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('원본',6,14);ctx.fillStyle='#1D9E75';ctx.fillText('sinc 재구성',6,28);}
+  const r2=getCtx('c-r-err',80);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);axes(ctx,W,H);const maxErr=Math.max(...err.map(Math.abs),0.001);line(ctx,err,W,H,'#D85A30',1.2,maxErr/0.38);ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText('최대 오차: '+(maxErr*100).toFixed(2)+'%',6,14);}
+}
+
+function drawSpectrum(){
+  const fmax=+document.getElementById('sp_f').value,fs=+document.getElementById('sp_fs').value;
+  document.getElementById('sp_fv').textContent=fmax+' Hz';document.getElementById('sp_fsv').textContent=fs+' Hz';
+  const ok=fs>=2*fmax,maxF=fs*2.5;
+  const r1=getCtx('c-sp-cont',100);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-20);ctx.lineTo(W,H-20);ctx.stroke();const x0=(0/maxF)*(W-20)+10,xl=((-fmax)/maxF)*(W-20)+10,xr=((fmax)/maxF)*(W-20)+10;ctx.fillStyle='rgba(55,138,221,0.3)';ctx.beginPath();ctx.moveTo(Math.max(xl,0),H-20);ctx.lineTo(x0,H-20-(H-30));ctx.lineTo(Math.min(xr,W),H-20);ctx.closePath();ctx.fill();ctx.strokeStyle='#378ADD';ctx.lineWidth=1.5;ctx.stroke();ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText('0',x0-4,H-4);ctx.fillText(fmax+'Hz',xr-10,H-4);}
+  const r2=getCtx('c-sp-samp',130);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-20);ctx.lineTo(W,H-20);ctx.stroke();const xN=((fs/2)/maxF)*(W-20)+10;ctx.strokeStyle=ok?'#1D9E75':'#D85A30';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(xN,0);ctx.lineTo(xN,H-20);ctx.stroke();ctx.setLineDash([]);ctx.font='10px sans-serif';ctx.fillStyle=ok?'#1D9E75':'#D85A30';ctx.fillText('fs/2',xN+3,14);for(let k=-2;k<=2;k++){const cx=k*fs,xl=((cx-fmax)/maxF)*(W-20)+10,x0=(cx/maxF)*(W-20)+10,xr=((cx+fmax)/maxF)*(W-20)+10;if(xr<0||xl>W)continue;const alpha=k===0?0.8:0.3;const overlaps=!ok&&k!==0&&Math.abs(cx)<2*fmax;ctx.fillStyle=overlaps?`rgba(212,83,48,${alpha})`:`rgba(55,138,221,${alpha})`;ctx.beginPath();ctx.moveTo(Math.max(xl,0),H-20);ctx.lineTo(Math.min(x0,W),H-20-(H-30)*0.85);ctx.lineTo(Math.min(xr,W),H-20);ctx.closePath();ctx.fill();ctx.strokeStyle=overlaps?'#D85A30':'#378ADD';ctx.lineWidth=overlaps?1.5:1;ctx.stroke();}if(!ok){ctx.fillStyle='#D85A30';ctx.fillText('에일리어싱!',W/2-30,20);}else{ctx.fillStyle='#1D9E75';ctx.fillText('정상 ✓',W/2-15,20);}}
+}
+
+function setMode(m){curMode=m;['sampling','alias','reconstruct','spectrum'].forEach((x,i)=>{document.getElementById('mode-'+x).style.display=x===m?'':'none';document.querySelectorAll('.tab')[i].className='tab'+(x===m?' active':'');});if(theoryOpen){document.getElementById('theoryPanel').innerHTML=buildHTML(m);}if(m==='sampling')drawSampling();if(m==='alias')drawAlias();if(m==='reconstruct')drawReconstruct();if(m==='spectrum')drawSpectrum();}
+drawSampling();
+</script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AM / FM / DSB-SC — physics-sim-platform</title>
+<style>
+  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.12);--text:#1a1a1a;--text2:#666;--info-bg:#E6F1FB;--info:#185FA5;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.12);--text:#e8e8e8;--text2:#999;--info-bg:#0c2a40;--info:#5aabf0;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
+  nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+  nav a{font-size:13px;color:var(--text2);text-decoration:none;}nav a:hover{color:var(--text);}
+  .sep{color:var(--border);}.cur{color:var(--text);font-weight:500;}
+  .container{max-width:860px;margin:0 auto;padding:24px 16px;}
+  h1{font-size:22px;font-weight:500;margin-bottom:4px;}
+  .subtitle{font-size:14px;color:var(--text2);margin-bottom:24px;}
+  .panel{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .lbl{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .row label{font-size:13px;color:var(--text2);width:80px;flex-shrink:0;}
+  .row input[type=range]{flex:1;accent-color:#534AB7;}
+  .val{font-size:13px;font-weight:500;min-width:52px;text-align:right;}
+  canvas{width:100%;display:block;}
+  .tab-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
+  .tab{font-size:12px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;}
+  .tab.active{background:var(--bg2);color:var(--text);font-weight:500;}
+  .theory-btn{font-size:12px;padding:4px 12px;border-radius:8px;border:1px solid var(--info);background:transparent;color:var(--info);cursor:pointer;font-family:inherit;margin-left:auto;}
+  .theory-btn.open{background:var(--info-bg);}
+  .theory-box{background:var(--bg2);border-radius:12px;border:1px solid var(--border);padding:16px;margin-bottom:10px;display:none;}
+  .theory-box.show{display:block;}
+  .theory-box h3{font-size:14px;font-weight:500;margin-bottom:12px;}
+  .ts{margin-bottom:14px;}
+  .ts-lbl{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+  .eq{font-family:'SF Mono',Consolas,monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;line-height:1.7;margin-bottom:5px;}
+  .tt{font-size:13px;color:var(--text2);line-height:1.7;}
+  .code-ref{font-family:'SF Mono',Consolas,monospace;font-size:12px;background:var(--bg);border-left:2px solid #534AB7;padding:8px 12px;border-radius:0 8px 8px 0;color:var(--text2);margin-top:6px;line-height:1.6;}
+  .metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+  .metric{background:var(--bg2);border-radius:8px;padding:8px 10px;}
+  .m-label{font-size:11px;color:var(--text2);}
+  .m-val{font-size:14px;font-weight:500;margin-top:2px;}
+  .note{font-size:12px;color:var(--text2);margin-top:8px;padding:8px 12px;background:var(--bg2);border-radius:8px;line-height:1.6;}
+  .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;}
+  .b-blue{background:#E6F1FB;color:#185FA5;}.b-green{background:#EAF3DE;color:#3B6D11;}.b-warn{background:#FAEEDA;color:#854F0B;}
+</style>
+</head>
+<body>
+<nav>
+  <a href="../../index.html">physics-sim-platform</a><span class="sep">/</span>
+  <a href="../index.html">signals</a><span class="sep">/</span>
+  <span class="cur">02 AM / FM / DSB-SC</span>
+</nav>
+<div class="container">
+  <h1>AM / FM / DSB-SC 변조</h1>
+  <p class="subtitle">진폭 변조 · 주파수 변조 · 억압 반송파 이중 측파대</p>
+  <div class="tab-bar">
+    <button class="tab active" onclick="setMode('am')">AM</button>
+    <button class="tab" onclick="setMode('dsb')">DSB-SC</button>
+    <button class="tab" onclick="setMode('fm')">FM</button>
+    <button class="tab" onclick="setMode('cmp')">비교</button>
+    <button class="theory-btn" id="theoryBtn" onclick="toggleTheory()">이론 보기</button>
+  </div>
+  <div id="theoryPanel" class="theory-box"></div>
+
+  <div id="mode-am">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">메시지 m(t)</div>
+        <div class="row"><label>주파수 fm</label><input type="range" min="1" max="15" value="3" step="1" id="am_fm" oninput="drawAM()"><span class="val" id="am_fmv">3 Hz</span></div>
+        <div class="row"><label>진폭 Am</label><input type="range" min="0.1" max="2" value="1" step="0.1" id="am_am" oninput="drawAM()"><span class="val" id="am_amv">1.0</span></div>
+      </div>
+      <div class="panel"><div class="lbl">반송파</div>
+        <div class="row"><label>주파수 fc</label><input type="range" min="10" max="40" value="20" step="1" id="am_fc" oninput="drawAM()"><span class="val" id="am_fcv">20 Hz</span></div>
+        <div class="row"><label>변조지수 μ</label><input type="range" min="0.1" max="1.5" value="0.8" step="0.05" id="am_mu" oninput="drawAM()"><span class="val" id="am_muv">0.80</span></div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">시간 영역 — 메시지 <span class="badge b-blue">파란색</span> / AM <span class="badge b-green">초록색</span></div><div style="position:relative;height:140px;"><canvas id="c-am-time"></canvas></div></div>
+    <div class="panel"><div class="lbl">주파수 스펙트럼</div><div style="position:relative;height:120px;"><canvas id="c-am-freq"></canvas></div>
+      <div class="metric-row">
+        <div class="metric"><div class="m-label">반송파 fc</div><div class="m-val" id="am-m1">—</div></div>
+        <div class="metric"><div class="m-label">대역폭 BW</div><div class="m-val" id="am-m2">—</div></div>
+        <div class="metric"><div class="m-label">변조지수 μ</div><div class="m-val" id="am-m3">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mode-dsb" style="display:none;">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">메시지</div>
+        <div class="row"><label>주파수 fm</label><input type="range" min="1" max="15" value="3" step="1" id="dsb_fm" oninput="drawDSB()"><span class="val" id="dsb_fmv">3 Hz</span></div>
+        <div class="row"><label>진폭 Am</label><input type="range" min="0.1" max="2" value="1" step="0.1" id="dsb_am" oninput="drawDSB()"><span class="val" id="dsb_amv">1.0</span></div>
+      </div>
+      <div class="panel"><div class="lbl">반송파</div>
+        <div class="row"><label>주파수 fc</label><input type="range" min="10" max="40" value="20" step="1" id="dsb_fc" oninput="drawDSB()"><span class="val" id="dsb_fcv">20 Hz</span></div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">DSB-SC 파형</div><div style="position:relative;height:140px;"><canvas id="c-dsb-time"></canvas></div></div>
+    <div class="panel"><div class="lbl">스펙트럼 — AM <span class="badge b-blue">반투명</span> vs DSB-SC <span class="badge b-green">진한색</span></div><div style="position:relative;height:130px;"><canvas id="c-dsb-freq"></canvas></div>
+      <div class="note">DSB-SC는 반송파 성분(fc)이 제거돼 전력 효율이 높지만, 복조 시 동기 반송파가 필요하다.</div>
+    </div>
+  </div>
+
+  <div id="mode-fm" style="display:none;">
+    <div class="grid2">
+      <div class="panel"><div class="lbl">메시지</div>
+        <div class="row"><label>주파수 fm</label><input type="range" min="1" max="10" value="3" step="1" id="fm_fm" oninput="drawFM()"><span class="val" id="fm_fmv">3 Hz</span></div>
+        <div class="row"><label>진폭 Am</label><input type="range" min="0.1" max="2" value="1" step="0.1" id="fm_am" oninput="drawFM()"><span class="val" id="fm_amv">1.0</span></div>
+      </div>
+      <div class="panel"><div class="lbl">FM 파라미터</div>
+        <div class="row"><label>반송파 fc</label><input type="range" min="10" max="35" value="20" step="1" id="fm_fc" oninput="drawFM()"><span class="val" id="fm_fcv">20 Hz</span></div>
+        <div class="row"><label>편이 kf</label><input type="range" min="1" max="10" value="4" step="0.5" id="fm_kf" oninput="drawFM()"><span class="val" id="fm_kfv">4.0</span></div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">FM 파형</div><div style="position:relative;height:140px;"><canvas id="c-fm-time"></canvas></div></div>
+    <div class="panel"><div class="lbl">FM 스펙트럼 (베셀 함수 J_n(β))</div><div style="position:relative;height:120px;"><canvas id="c-fm-freq"></canvas></div>
+      <div class="metric-row">
+        <div class="metric"><div class="m-label">변조지수 β</div><div class="m-val" id="fm-m1">—</div></div>
+        <div class="metric"><div class="m-label">최대 편이 Δf</div><div class="m-val" id="fm-m2">—</div></div>
+        <div class="metric"><div class="m-label">카슨 BW</div><div class="m-val" id="fm-m3">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mode-cmp" style="display:none;">
+    <div class="panel"><div class="lbl">공통 파라미터</div>
+      <div class="row"><label>메시지 fm</label><input type="range" min="1" max="8" value="3" step="1" id="cmp_fm" oninput="drawCmp()"><span class="val" id="cmp_fmv">3 Hz</span></div>
+      <div class="row"><label>반송파 fc</label><input type="range" min="15" max="35" value="20" step="1" id="cmp_fc" oninput="drawCmp()"><span class="val" id="cmp_fcv">20 Hz</span></div>
+    </div>
+    <div class="panel"><div class="lbl">메시지 m(t)</div><div style="position:relative;height:70px;"><canvas id="c-cmp-msg"></canvas></div></div>
+    <div class="panel"><div class="lbl">AM <span class="badge b-blue">파란색</span></div><div style="position:relative;height:90px;"><canvas id="c-cmp-am"></canvas></div></div>
+    <div class="panel"><div class="lbl">DSB-SC <span class="badge b-green">초록색</span></div><div style="position:relative;height:90px;"><canvas id="c-cmp-dsb"></canvas></div></div>
+    <div class="panel"><div class="lbl">FM <span class="badge b-warn">주황색</span></div><div style="position:relative;height:90px;"><canvas id="c-cmp-fm"></canvas></div></div>
+  </div>
+</div>
+<script>
+const N=1024,FS=200,Ts=1/FS;
+const t=Array.from({length:N},(_,i)=>i*Ts);
+let curMode='am',theoryOpen=false;
+const isDark=()=>window.matchMedia('(prefers-color-scheme:dark)').matches;
+const TC=()=>isDark()?'#e8e8e8':'#1a1a1a';
+const SC=()=>isDark()?'#888':'#888';
+const BC=()=>isDark()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';
+
+const theories={
+  am:{title:'AM (Amplitude Modulation)',sections:[
+    {label:'핵심 수식',eqs:['s(t) = Ac[1 + μ·m_n(t)]·cos(2πfc·t)','대역폭: BW = 2·fm','μ > 1 → 과변조 (포락선 왜곡)']},
+    {label:'개념',text:'메시지 신호의 크기가 반송파 진폭을 변조. μ≤1이면 포락선 검파로 간단히 복조 가능. 스펙트럼에서 fc(반송파)와 fc±fm(측파대)가 나타난다.'},
+    {label:'구현',code:'s(t) = (1 + μ*msg/Am) * cos(2π*fc*t)'}
+  ]},
+  dsb:{title:'DSB-SC (Double Sideband Suppressed Carrier)',sections:[
+    {label:'핵심 수식',eqs:['s(t) = m(t)·cos(2πfc·t)','S(f) = ½[M(f-fc) + M(f+fc)]','반송파 성분 없음 → 전력 효율 향상']},
+    {label:'개념',text:'AM에서 반송파 제거. 푸리에 주파수 이동 성질에 의해 메시지 스펙트럼이 ±fc로 이동. 복조 시 동기 반송파 필요.'},
+    {label:'구현',code:'s(t) = msg[i] * cos(2π*fc*t)  // 단순 곱셈'}
+  ]},
+  fm:{title:'FM (Frequency Modulation)',sections:[
+    {label:'핵심 수식',eqs:['s(t) = cos(2πfc·t + 2π·kf·∫m dt)','변조지수: β = kf·Am/fm','카슨 법칙: BW ≈ 2(Δf + fm) = 2fm(β+1)','스펙트럼: Jn(β)·δ(f - fc - n·fm)']},
+    {label:'개념',text:'메시지가 순간 주파수를 변조. 진폭 일정 → 진폭 잡음에 강함. β 클수록 스펙트럼 넓어짐. 스펙트럼 계수는 베셀 함수 Jn(β).'},
+    {label:'구현',code:'s(t) = cos(2π*fc*t - (kf*Am/(2π*fm))*cos(2π*fm*t))'}
+  ]},
+  cmp:{title:'AM / DSB-SC / FM 비교',sections:[
+    {label:'수식 비교',eqs:['AM:     s = [1+μ·m_n]·cos(2πfc·t)','DSB-SC: s = m(t)·cos(2πfc·t)','FM:     s = cos(2πfc·t + 2πkf·∫m dt)']},
+    {label:'특성',text:'복조 난이도: AM < DSB-SC < FM. 잡음 성능: FM > DSB-SC > AM. 대역폭: FM(광대역) > AM = DSB-SC. 응용 — AM: 중파라디오, FM: FM방송, DSB-SC: SSB 전단계.'}
+  ]}
+};
+
+function buildHTML(m){const th=theories[m];let h=`<h3>${th.title}</h3>`;th.sections.forEach(s=>{h+=`<div class="ts"><div class="ts-lbl">${s.label}</div>`;if(s.eqs)s.eqs.forEach(e=>{h+=`<div class="eq">${e}</div>`;});if(s.text)h+=`<div class="tt">${s.text}</div>`;if(s.code)h+=`<div class="code-ref">${s.code.replace(/\n/g,'<br>')}</div>`;h+=`</div>`;});return h;}
+function toggleTheory(){theoryOpen=!theoryOpen;const p=document.getElementById('theoryPanel'),b=document.getElementById('theoryBtn');p.innerHTML=buildHTML(curMode);p.className='theory-box'+(theoryOpen?' show':'');b.textContent=theoryOpen?'이론 닫기':'이론 보기';b.className='theory-btn'+(theoryOpen?' open':'');}
+function getCtx(id,h){const el=document.getElementById(id);if(!el)return null;const dpr=window.devicePixelRatio||1;const W=el.parentElement.getBoundingClientRect().width||500;el.width=W*dpr;el.height=h*dpr;const ctx=el.getContext('2d');ctx.scale(dpr,dpr);return{ctx,W,H:h};}
+function axes(ctx,W,H){ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();}
+function line(ctx,sig,W,H,color,lw,sc){const s=sc||Math.max(...sig.map(Math.abs),0.01);ctx.strokeStyle=color;ctx.lineWidth=lw||1.5;ctx.beginPath();sig.forEach((v,i)=>{const x=i/N*W,y=H/2-v/s*H*0.4;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
+function fftMag(signal){const n=signal.length,re=[...signal],im=new Array(n).fill(0);let j=0;for(let i=1;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]];}}for(let len=2;len<=n;len<<=1){const ang=-2*Math.PI/len;for(let i=0;i<n;i+=len)for(let k=0;k<len/2;k++){const wr=Math.cos(ang*k),wi=Math.sin(ang*k),ur=re[i+k],ui=im[i+k],vr=re[i+k+len/2]*wr-im[i+k+len/2]*wi,vi=re[i+k+len/2]*wi+im[i+k+len/2]*wr;re[i+k]=ur+vr;im[i+k]=ui+vi;re[i+k+len/2]=ur-vr;im[i+k+len/2]=ui-vi;}}return re.map((r,i)=>Math.sqrt(r*r+im[i]*im[i])/n);}
+function spectrum(ctx,mag,W,H,maxF,hl){const df=FS/N;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-18);ctx.lineTo(W,H-18);ctx.stroke();const mx=Math.max(...mag.slice(1,Math.floor(maxF/df)),0.01);for(let i=1;i<N/2;i++){const f=i*df;if(f>maxF)break;const x=(f/maxF)*(W-20)+10,bh=(mag[i]/mx)*(H-26);if(bh<0.5)continue;let c=BC();if(hl)hl.forEach(h=>{if(Math.abs(f-h.f)<df*1.5)c=h.c;});ctx.fillStyle=c;ctx.fillRect(x-2,H-18-bh,4,bh);}ctx.font='10px sans-serif';ctx.fillStyle=SC();[0,10,20,30,40,50].forEach(f=>{ctx.fillText(f,(f/maxF)*(W-20)+4,H-4);});}
+function besselJ(n,x){let s=0;for(let m=0;m<=20;m++){let term=1;for(let i=1;i<=m;i++)term/=i;for(let i=1;i<=m+Math.abs(n);i++)term/=i;term*=Math.pow(-1,m)*Math.pow(x/2,2*m+Math.abs(n));s+=term;}return s;}
+
+function drawAM(){
+  const fm=+document.getElementById('am_fm').value,Am=+document.getElementById('am_am').value,fc=+document.getElementById('am_fc').value,mu=+document.getElementById('am_mu').value;
+  document.getElementById('am_fmv').textContent=fm+' Hz';document.getElementById('am_amv').textContent=Am.toFixed(1);document.getElementById('am_fcv').textContent=fc+' Hz';document.getElementById('am_muv').textContent=mu.toFixed(2);
+  const msg=t.map(ti=>Am*Math.sin(2*Math.PI*fm*ti));
+  const s=t.map((ti,i)=>(1+mu*msg[i]/Am)*Math.cos(2*Math.PI*fc*ti));
+  const ep=t.map((_,i)=>1+mu*msg[i]/Am),en=t.map((_,i)=>-(1+mu*msg[i]/Am));
+  const r1=getCtx('c-am-time',140);
+  if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);
+    ctx.strokeStyle=BC();ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.beginPath();ep.forEach((v,i)=>{const x=i/N*W,y=H/2-v*H*0.35;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();
+    ctx.beginPath();en.forEach((v,i)=>{const x=i/N*W,y=H/2-v*H*0.35;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();
+    ctx.setLineDash([]);
+    line(ctx,msg,W,H,'#378ADD',1.2,1/0.35);line(ctx,s,W,H,'#1D9E75',1.8,1/0.35);
+    ctx.font='11px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('m(t)',6,14);ctx.fillStyle='#1D9E75';ctx.fillText('s(t)',6,28);}
+  const mag=fftMag(s);
+  const r2=getCtx('c-am-freq',120);
+  if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);spectrum(ctx,mag,W,H,50,[{f:fc,c:'#D85A30'},{f:fc+fm,c:'#378ADD'},{f:fc-fm,c:'#378ADD'}]);}
+  document.getElementById('am-m1').textContent=fc+' Hz';document.getElementById('am-m2').textContent=(2*fm)+' Hz';document.getElementById('am-m3').textContent=mu<=1?mu.toFixed(2)+' ✓':mu.toFixed(2)+' 과변조!';
+}
+
+function drawDSB(){
+  const fm=+document.getElementById('dsb_fm').value,Am=+document.getElementById('dsb_am').value,fc=+document.getElementById('dsb_fc').value;
+  document.getElementById('dsb_fmv').textContent=fm+' Hz';document.getElementById('dsb_amv').textContent=Am.toFixed(1);document.getElementById('dsb_fcv').textContent=fc+' Hz';
+  const msg=t.map(ti=>Am*Math.sin(2*Math.PI*fm*ti));
+  const dsb=t.map((ti,i)=>msg[i]*Math.cos(2*Math.PI*fc*ti));
+  const am=t.map((ti,i)=>(1+0.8*msg[i]/Am)*Math.cos(2*Math.PI*fc*ti));
+  const r1=getCtx('c-dsb-time',140);
+  if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,msg,W,H,'#378ADD',1.2,Am/0.38);line(ctx,dsb,W,H,'#1D9E75',1.8,1/0.38);ctx.font='11px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('m(t)',6,14);ctx.fillStyle='#1D9E75';ctx.fillText('DSB-SC',6,28);}
+  const mD=fftMag(dsb),mA=fftMag(am);
+  const r2=getCtx('c-dsb-freq',130);
+  if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);const df=FS/N,maxF=50;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-18);ctx.lineTo(W,H-18);ctx.stroke();const mx=Math.max(...mA.slice(1,Math.floor(maxF/df)),0.01);for(let i=1;i<N/2;i++){const f=i*df;if(f>maxF)break;const x=(f/maxF)*(W-20)+10,bA=(mA[i]/mx)*(H-26),bD=(mD[i]/mx)*(H-26);if(bA>0.5){ctx.fillStyle='rgba(55,138,221,0.2)';ctx.fillRect(x-5,H-18-bA,10,bA);}if(bD>0.5){ctx.fillStyle='#1D9E75';ctx.fillRect(x-2,H-18-bD,4,bD);}}ctx.font='10px sans-serif';ctx.fillStyle=SC();[0,10,20,30,40,50].forEach(f=>{ctx.fillText(f,(f/50)*(W-20)+4,H-4);});}}
+
+function drawFM(){
+  const fm=+document.getElementById('fm_fm').value,Am=+document.getElementById('fm_am').value,fc=+document.getElementById('fm_fc').value,kf=+document.getElementById('fm_kf').value;
+  document.getElementById('fm_fmv').textContent=fm+' Hz';document.getElementById('fm_amv').textContent=Am.toFixed(1);document.getElementById('fm_fcv').textContent=fc+' Hz';document.getElementById('fm_kfv').textContent=kf.toFixed(1);
+  const beta=kf*Am/fm,dF=kf*Am,bw=2*(dF+fm);
+  document.getElementById('fm-m1').textContent=beta.toFixed(2);document.getElementById('fm-m2').textContent=dF.toFixed(1)+' Hz';document.getElementById('fm-m3').textContent=bw.toFixed(1)+' Hz';
+  const msg=t.map(ti=>Am*Math.sin(2*Math.PI*fm*ti));
+  const s=t.map(ti=>Math.cos(2*Math.PI*fc*ti-(kf*Am/(2*Math.PI*fm))*Math.cos(2*Math.PI*fm*ti)));
+  const r1=getCtx('c-fm-time',140);
+  if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,msg,W,H,'#378ADD',1.2,Am/0.38);line(ctx,s,W,H,'#1D9E75',1.8,1/0.38);ctx.font='11px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('m(t)',6,14);ctx.fillStyle='#1D9E75';ctx.fillText('FM s(t)',6,28);}
+  const r2=getCtx('c-fm-freq',120);
+  if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);const maxF=60;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-18);ctx.lineTo(W,H-18);ctx.stroke();const comps=[];for(let n=-10;n<=10;n++){const f=fc+n*fm;if(f>0&&f<maxF){const a=Math.abs(besselJ(n,beta));if(a>0.01)comps.push({f,a,n});}}const mx=Math.max(...comps.map(c=>c.a),0.01);comps.forEach(c=>{const x=(c.f/maxF)*(W-20)+10,bh=(c.a/mx)*(H-26);ctx.fillStyle=c.n===0?'#D85A30':'#1D9E75';ctx.fillRect(x-3,H-18-bh,6,bh);});ctx.font='10px sans-serif';ctx.fillStyle=SC();[0,15,30,45,60].forEach(f=>{ctx.fillText(f,(f/maxF)*(W-20)+4,H-4);});}}
+
+function drawCmp(){
+  const fm=+document.getElementById('cmp_fm').value,fc=+document.getElementById('cmp_fc').value;
+  document.getElementById('cmp_fmv').textContent=fm+' Hz';document.getElementById('cmp_fcv').textContent=fc+' Hz';
+  const msg=t.map(ti=>Math.sin(2*Math.PI*fm*ti));
+  const am=t.map((ti,i)=>(1+0.8*msg[i])*Math.cos(2*Math.PI*fc*ti));
+  const dsb=t.map((ti,i)=>msg[i]*Math.cos(2*Math.PI*fc*ti));
+  const fm_s=t.map(ti=>Math.cos(2*Math.PI*fc*ti-(4/(2*Math.PI*fm))*Math.cos(2*Math.PI*fm*ti)));
+  const r0=getCtx('c-cmp-msg',70);if(r0){const{ctx,W,H}=r0;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,msg,W,H,SC(),1.5,1/0.38);}
+  const r1=getCtx('c-cmp-am',90);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,am,W,H,'#378ADD',1.5,1/0.38);}
+  const r2=getCtx('c-cmp-dsb',90);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,dsb,W,H,'#1D9E75',1.5,1/0.38);}
+  const r3=getCtx('c-cmp-fm',90);if(r3){const{ctx,W,H}=r3;ctx.clearRect(0,0,W,H);axes(ctx,W,H);line(ctx,fm_s,W,H,'#BA7517',1.5,1/0.38);}
+}
+
+function setMode(m){curMode=m;['am','dsb','fm','cmp'].forEach((x,i)=>{document.getElementById('mode-'+x).style.display=x===m?'':'none';document.querySelectorAll('.tab')[i].className='tab'+(x===m?' active':'');});if(theoryOpen){document.getElementById('theoryPanel').innerHTML=buildHTML(m);}if(m==='am')drawAM();if(m==='dsb')drawDSB();if(m==='fm')drawFM();if(m==='cmp')drawCmp();}
+drawAM();
+</script>
+</body>
+</html>
