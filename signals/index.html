@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Signals & Systems — physics-sim-platform</title>
 <style>
-  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.1);--text:#1a1a1a;--text2:#666;--blue:#378ADD;--purple:#534AB7;--green:#1D9E75;--amber:#BA7517;--red:#D85A30;}
+  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.1);--text:#1a1a1a;--text2:#666;}
   @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.1);--text:#e8e8e8;--text2:#999;}}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
@@ -18,7 +17,7 @@
   .section-title{font-size:13px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px;margin-top:32px;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
   .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;text-decoration:none;color:var(--text);transition:border-color 0.15s,transform 0.15s;}
-  .card:hover{border-color:var(--blue);transform:translateY(-1px);}
+  .card:hover{border-color:#378ADD;transform:translateY(-1px);}
   .card.disabled{opacity:0.45;pointer-events:none;}
   .card-num{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;}
   .card-title{font-size:16px;font-weight:500;margin-bottom:6px;}
@@ -27,16 +26,13 @@
   .tag{font-size:11px;padding:2px 7px;border-radius:4px;background:var(--bg);border:1px solid var(--border);color:var(--text2);}
   .badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;margin-left:6px;vertical-align:middle;}
   .badge-new{background:#EAF3DE;color:#3B6D11;}
-  .accent-blue{border-top:3px solid var(--blue);}
-  .accent-green{border-top:3px solid var(--green);}
-  .accent-purple{border-top:3px solid var(--purple);}
+  @media(prefers-color-scheme:dark){.badge-new{background:#1a2e1a;color:#6dbc6d;};}
+  .at{border-top:3px solid #378ADD;}.ag{border-top:3px solid #1D9E75;}.ap{border-top:3px solid #534AB7;}
 </style>
 </head>
 <body>
 <nav>
-  <a href="../index.html">physics-sim-platform</a>
-  <span class="sep">/</span>
-  <span class="cur">signals</span>
+  <a href="../index.html">physics-sim-platform</a><span class="sep">/</span><span class="cur">signals</span>
 </nav>
 <div class="container">
   <h1>Signals & Systems</h1>
@@ -44,68 +40,23 @@
 
   <div class="section-title">기초 신호처리</div>
   <div class="grid">
-    <a class="card accent-blue" href="01_fourier/index.html">
-      <div class="card-num">01</div>
-      <div class="card-title">푸리에 변환</div>
-      <div class="card-desc">파형 합성, FFT 분석, 구형파 분해, 깁스 현상</div>
-      <div class="tags"><span class="tag">FFT</span><span class="tag">스펙트럼</span><span class="tag">중첩</span></div>
-    </a>
-    <a class="card accent-blue" href="04_sampling/index.html">
-      <div class="card-num">04</div>
-      <div class="card-title">샘플링 & 나이퀴스트</div>
-      <div class="card-desc">샘플링 정리, 에일리어싱, sinc 재구성, 스펙트럼 복제</div>
-      <div class="tags"><span class="tag">나이퀴스트</span><span class="tag">에일리어싱</span><span class="tag">sinc</span></div>
-    </a>
-    <a class="card accent-blue" href="06_probability/index.html">
-      <div class="card-num">06</div>
-      <div class="card-title">확률 & 통계</div>
-      <div class="card-desc">가우시안, 랜덤 변수, 중심극한정리, 결합 분포</div>
-      <div class="tags"><span class="tag">가우시안</span><span class="tag">CLT</span><span class="tag">AWGN</span></div>
-    </a>
+    <a class="card at" href="01_fourier/index.html"><div class="card-num">01</div><div class="card-title">푸리에 변환</div><div class="card-desc">파형 합성, FFT 분석, 구형파 분해, 깁스 현상</div><div class="tags"><span class="tag">FFT</span><span class="tag">스펙트럼</span><span class="tag">중첩</span></div></a>
+    <a class="card at" href="04_sampling/index.html"><div class="card-num">04</div><div class="card-title">샘플링 & 나이퀴스트</div><div class="card-desc">샘플링 정리, 에일리어싱, sinc 재구성, 스펙트럼 복제</div><div class="tags"><span class="tag">나이퀴스트</span><span class="tag">에일리어싱</span><span class="tag">sinc</span></div></a>
+    <a class="card at" href="06_probability/index.html"><div class="card-num">06</div><div class="card-title">확률 & 통계</div><div class="card-desc">가우시안, 랜덤 변수, 중심극한정리, 결합 분포</div><div class="tags"><span class="tag">가우시안</span><span class="tag">CLT</span><span class="tag">AWGN</span></div></a>
   </div>
 
   <div class="section-title">아날로그 변복조</div>
   <div class="grid">
-    <a class="card accent-green" href="02_am_fm_dsb/index.html">
-      <div class="card-num">02</div>
-      <div class="card-title">AM / FM / DSB-SC</div>
-      <div class="card-desc">진폭·주파수 변조, 억압 반송파, 베셀 함수 스펙트럼</div>
-      <div class="tags"><span class="tag">AM</span><span class="tag">FM</span><span class="tag">DSB-SC</span></div>
-    </a>
-    <a class="card accent-green" href="03_pm_dm/index.html">
-      <div class="card-num">03</div>
-      <div class="card-title">PM / DM / ADM</div>
-      <div class="card-desc">위상 변조, 델타 변조, 적응형 델타 변조</div>
-      <div class="tags"><span class="tag">PM</span><span class="tag">DM</span><span class="tag">ADM</span></div>
-    </a>
+    <a class="card ag" href="02_am_fm_dsb/index.html"><div class="card-num">02</div><div class="card-title">AM / FM / DSB-SC</div><div class="card-desc">진폭·주파수 변조, 억압 반송파, 베셀 함수 스펙트럼</div><div class="tags"><span class="tag">AM</span><span class="tag">FM</span><span class="tag">DSB-SC</span></div></a>
+    <a class="card ag" href="03_pm_dm/index.html"><div class="card-num">03</div><div class="card-title">PM / DM / ADM</div><div class="card-desc">위상 변조, 델타 변조, 적응형 델타 변조</div><div class="tags"><span class="tag">PM</span><span class="tag">DM</span><span class="tag">ADM</span></div></a>
+    <a class="card ag" href="09_am_fm_pipeline/index.html"><div class="card-num">09</div><div class="card-title">AM/FM 복조 파이프라인<span class="badge badge-new">심화</span></div><div class="card-desc">포락선 검파, 동기 복조, 리미터-판별기, FM 임계 효과, SNR 비교</div><div class="tags"><span class="tag">Envelope Detection</span><span class="tag">Discriminator</span><span class="tag">SNR</span></div></a>
   </div>
 
   <div class="section-title">디지털 변복조 — 전체 파이프라인</div>
   <div class="grid">
-    <a class="card accent-purple" href="05_digital_modulation/index.html">
-      <div class="card-num">05</div>
-      <div class="card-title">디지털 변조 개요</div>
-      <div class="card-desc">BPSK, QPSK, FSK, QAM 성상도, BER 곡선 비교</div>
-      <div class="tags"><span class="tag">PSK</span><span class="tag">QAM</span><span class="tag">BER</span></div>
-    </a>
-    <a class="card accent-purple" href="07_bpsk_qpsk_pipeline/index.html">
-      <div class="card-num">07</div>
-      <div class="card-title">BPSK / QPSK 파이프라인<span class="badge badge-new">심화</span></div>
-      <div class="card-desc">송신→채널→수신 전 과정, 정합 필터, 아이 다이어그램, 반송파 복원</div>
-      <div class="tags"><span class="tag">Matched Filter</span><span class="tag">Eye Diagram</span><span class="tag">BER</span></div>
-    </a>
-    <a class="card accent-purple" href="08_qam_pipeline/index.html">
-      <div class="card-num">08</div>
-      <div class="card-title">QAM 16/64 파이프라인<span class="badge badge-new">심화</span></div>
-      <div class="card-desc">Gray 코딩, I/Q 복조, AGC, 성상도, 아이 다이어그램, BER</div>
-      <div class="tags"><span class="tag">16-QAM</span><span class="tag">64-QAM</span><span class="tag">Gray 코딩</span></div>
-    </a>
-    <a class="card disabled">
-      <div class="card-num">09</div>
-      <div class="card-title">AM / FM 복조 파이프라인</div>
-      <div class="card-desc">포락선 검파, 리미터-판별기, SNR 분석</div>
-      <div class="tags"><span class="tag">준비 중</span></div>
-    </a>
+    <a class="card ap" href="05_digital_modulation/index.html"><div class="card-num">05</div><div class="card-title">디지털 변조 개요</div><div class="card-desc">BPSK, QPSK, FSK, QAM 성상도, BER 곡선 비교</div><div class="tags"><span class="tag">PSK</span><span class="tag">QAM</span><span class="tag">BER</span></div></a>
+    <a class="card ap" href="07_bpsk_qpsk_pipeline/index.html"><div class="card-num">07</div><div class="card-title">BPSK/QPSK 파이프라인<span class="badge badge-new">심화</span></div><div class="card-desc">송신→채널→수신 전 과정, 정합 필터, 아이 다이어그램, 반송파 복원</div><div class="tags"><span class="tag">Matched Filter</span><span class="tag">Eye Diagram</span><span class="tag">BER</span></div></a>
+    <a class="card ap" href="08_qam_pipeline/index.html"><div class="card-num">08</div><div class="card-title">QAM 16/64 파이프라인<span class="badge badge-new">심화</span></div><div class="card-desc">Gray 코딩, I/Q 복조, AGC, 성상도, 아이 다이어그램, BER</div><div class="tags"><span class="tag">16-QAM</span><span class="tag">64-QAM</span><span class="tag">Gray 코딩</span></div></a>
   </div>
 </div>
 </body>

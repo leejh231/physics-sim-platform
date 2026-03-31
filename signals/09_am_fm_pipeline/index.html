@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AM/FM 복조 파이프라인 — physics-sim-platform</title>
+<style>
+  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.12);--text:#1a1a1a;--text2:#666;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.12);--text:#e8e8e8;--text2:#999;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
+  nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+  nav a{font-size:13px;color:var(--text2);text-decoration:none;}nav a:hover{color:var(--text);}
+  .sep{color:var(--border);}.cur{color:var(--text);font-weight:500;}
+  .container{max-width:860px;margin:0 auto;padding:24px 16px;}
+  h1{font-size:22px;font-weight:500;margin-bottom:4px;}.subtitle{font-size:14px;color:var(--text2);margin-bottom:24px;}
+  .panel{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .ptx{border-left:3px solid #378ADD;}.pch{border-left:3px solid #BA7517;}.prx{border-left:3px solid #1D9E75;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+  .lbl{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+  .sl{font-size:12px;font-weight:500;padding:3px 10px;border-radius:8px;margin-bottom:10px;display:inline-block;}
+  .sl-tx{background:#E6F1FB;color:#185FA5;}.sl-ch{background:#FAEEDA;color:#854F0B;}.sl-rx{background:#EAF3DE;color:#3B6D11;}
+  @media(prefers-color-scheme:dark){.sl-tx{background:#0c2a40;color:#5aabf0;}.sl-ch{background:#3a2a00;color:#e8a832;}.sl-rx{background:#1a2e1a;color:#6dbc6d;};}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .row label{font-size:13px;color:var(--text2);width:120px;flex-shrink:0;}
+  .row input[type=range]{flex:1;accent-color:#534AB7;}.row select{flex:1;font-size:12px;padding:3px 6px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);}
+  .val{font-size:13px;font-weight:500;min-width:60px;text-align:right;}
+  canvas{width:100%;display:block;}
+  .tab-bar{display:flex;gap:6px;margin-bottom:12px;}
+  .tab{font-size:12px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;}
+  .tab.active{background:var(--bg2);color:var(--text);font-weight:500;}
+  .metric-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+  .metric{background:var(--bg2);border-radius:8px;padding:8px 10px;}.m-label{font-size:11px;color:var(--text2);}.m-val{font-size:14px;font-weight:500;margin-top:2px;}
+  .note{font-size:12px;color:var(--text2);padding:8px 12px;background:var(--bg2);border-radius:8px;line-height:1.6;margin-top:8px;}
+  .step-row{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12px;color:var(--text2);}
+  .step-num{width:20px;height:20px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;}
+</style>
+</head>
+<body>
+<nav>
+  <a href="../../index.html">physics-sim-platform</a><span class="sep">/</span>
+  <a href="../index.html">signals</a><span class="sep">/</span>
+  <span class="cur">09 AM/FM 복조 파이프라인</span>
+</nav>
+<div class="container">
+  <h1>AM / FM 전체 복조 파이프라인</h1>
+  <p class="subtitle">포락선 검파 · 동기 복조 · 리미터-판별기 · FM 임계 효과 · SNR 비교</p>
+  <div class="tab-bar">
+    <button class="tab active" onclick="setMode('am')">AM 복조</button>
+    <button class="tab" onclick="setMode('fm')">FM 복조</button>
+    <button class="tab" onclick="setMode('compare')">AM vs FM SNR</button>
+  </div>
+
+  <!-- AM -->
+  <div id="mode-am">
+    <div class="panel" style="margin-bottom:10px;"><div class="lbl">AM 복조 파이프라인</div>
+      <div class="step-row"><div class="step-num">1</div>m(t) → AM 변조: s(t) = Ac[1 + μ·m_n(t)]·cos(2πfct)</div>
+      <div class="step-row"><div class="step-num">2</div>채널: r(t) = s(t) + n(t)  [AWGN]</div>
+      <div class="step-row"><div class="step-num">3</div>포락선 검파: |r(t)| → LPF → 포락선 추출</div>
+      <div class="step-row"><div class="step-num">4</div>DC 차단: 포락선 - Ac → m̂(t)</div>
+      <div class="step-row"><div class="step-num">5</div>SNR 분석 및 왜곡 확인</div>
+    </div>
+    <div class="grid3">
+      <div class="panel ptx"><div class="sl sl-tx">송신단 TX</div>
+        <div class="row"><label>메시지 fm</label><input type="range" min="1" max="10" value="3" step="1" id="am_fm" oninput="runAM()"><span class="val" id="am_fmv">3 Hz</span></div>
+        <div class="row"><label>반송파 fc</label><input type="range" min="15" max="50" value="25" step="1" id="am_fc" oninput="runAM()"><span class="val" id="am_fcv">25 Hz</span></div>
+        <div class="row"><label>변조지수 μ</label><input type="range" min="0.1" max="1.4" value="0.8" step="0.05" id="am_mu" oninput="runAM()"><span class="val" id="am_muv">0.80</span></div>
+      </div>
+      <div class="panel pch"><div class="sl sl-ch">채널 CH</div>
+        <div class="row"><label>SNR (dB)</label><input type="range" min="0" max="30" value="15" step="1" id="am_snr" oninput="runAM()"><span class="val" id="am_snrv">15 dB</span></div>
+        <div class="row"><label>위상 오차</label><input type="range" min="0" max="45" value="0" step="1" id="am_phi" oninput="runAM()"><span class="val" id="am_phiv">0°</span></div>
+      </div>
+      <div class="panel prx"><div class="sl sl-rx">수신단 RX</div>
+        <div class="row"><label>LPF 차단 주파수</label><input type="range" min="2" max="20" value="8" step="1" id="am_lpf" oninput="runAM()"><span class="val" id="am_lpfv">8 Hz</span></div>
+        <div class="row"><label>복조 방식</label><select id="am_method" onchange="runAM()"><option value="envelope">포락선 검파</option><option value="coherent">동기 복조</option></select></div>
+      </div>
+    </div>
+    <div class="panel ptx"><div class="lbl"><span class="sl sl-tx">TX</span> 메시지 m(t) & 변조 신호 s(t)</div><div style="position:relative;height:120px;"><canvas id="c-am-tx"></canvas></div></div>
+    <div class="panel pch"><div class="lbl"><span class="sl sl-ch">CH</span> 수신 신호 r(t) = s(t) + n(t)</div><div style="position:relative;height:110px;"><canvas id="c-am-rx"></canvas></div></div>
+    <div class="grid2">
+      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 포락선 검파 / 정류 후</div><div style="position:relative;height:110px;"><canvas id="c-am-env"></canvas></div><div class="note">μ ≤ 1이면 포락선이 항상 양수 → 왜곡 없음. μ > 1이면 과변조 → 포락선 뒤집힘 → 왜곡.</div></div>
+      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> LPF 통과 후 포락선</div><div style="position:relative;height:110px;"><canvas id="c-am-lpf"></canvas></div><div class="note">LPF 차단 주파수가 fm보다 작으면 신호 손실. fc보다 크면 반송파 성분이 남는다.</div></div>
+    </div>
+    <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 복원 신호 m̂(t) vs 원본 m(t)</div><div style="position:relative;height:120px;"><canvas id="c-am-out"></canvas></div></div>
+    <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 스펙트럼 분석</div><div style="position:relative;height:110px;"><canvas id="c-am-spec"></canvas></div></div>
+    <div class="metric-row">
+      <div class="metric"><div class="m-label">입력 SNR</div><div class="m-val" id="am-m1">—</div></div>
+      <div class="metric"><div class="m-label">출력 SNR (이론)</div><div class="m-val" id="am-m2">—</div></div>
+      <div class="metric"><div class="m-label">SNR 효율</div><div class="m-val" id="am-m3">—</div></div>
+      <div class="metric"><div class="m-label">변조지수 상태</div><div class="m-val" id="am-m4">—</div></div>
+    </div>
+  </div>
+
+  <!-- FM -->
+  <div id="mode-fm" style="display:none;">
+    <div class="panel" style="margin-bottom:10px;"><div class="lbl">FM 복조 파이프라인</div>
+      <div class="step-row"><div class="step-num">1</div>m(t) → FM 변조: s(t) = cos(2πfct + 2πkf·∫m dτ)</div>
+      <div class="step-row"><div class="step-num">2</div>채널: r(t) = s(t) + n(t) [AWGN]</div>
+      <div class="step-row"><div class="step-num">3</div>리미터: 진폭 ±1 클리핑 → 진폭 잡음 억제</div>
+      <div class="step-row"><div class="step-num">4</div>주파수 판별기: 순간 주파수 추출 (수치 미분)</div>
+      <div class="step-row"><div class="step-num">5</div>LPF → 복원 신호. FM 임계 효과 분석.</div>
+    </div>
+    <div class="grid3">
+      <div class="panel ptx"><div class="sl sl-tx">송신단 TX</div>
+        <div class="row"><label>메시지 fm</label><input type="range" min="1" max="8" value="3" step="1" id="fm_fm" oninput="runFM()"><span class="val" id="fm_fmv">3 Hz</span></div>
+        <div class="row"><label>반송파 fc</label><input type="range" min="15" max="40" value="20" step="1" id="fm_fc" oninput="runFM()"><span class="val" id="fm_fcv">20 Hz</span></div>
+        <div class="row"><label>주파수 편이 kf</label><input type="range" min="1" max="10" value="5" step="0.5" id="fm_kf" oninput="runFM()"><span class="val" id="fm_kfv">5.0</span></div>
+      </div>
+      <div class="panel pch"><div class="sl sl-ch">채널 CH</div>
+        <div class="row"><label>SNR (dB)</label><input type="range" min="0" max="30" value="15" step="1" id="fm_snr" oninput="runFM()"><span class="val" id="fm_snrv">15 dB</span></div>
+      </div>
+      <div class="panel prx"><div class="sl sl-rx">수신단 RX</div>
+        <div class="row"><label>LPF 차단 주파수</label><input type="range" min="2" max="15" value="6" step="1" id="fm_lpf" oninput="runFM()"><span class="val" id="fm_lpfv">6 Hz</span></div>
+        <div class="row"><label>판별기 이득</label><input type="range" min="0.2" max="3" value="1" step="0.1" id="fm_gain" oninput="runFM()"><span class="val" id="fm_gainv">1.0</span></div>
+      </div>
+    </div>
+    <div class="panel ptx"><div class="lbl"><span class="sl sl-tx">TX</span> 메시지 & FM 변조 신호</div><div style="position:relative;height:120px;"><canvas id="c-fm-tx"></canvas></div></div>
+    <div class="panel pch"><div class="lbl"><span class="sl sl-ch">CH</span> 수신 신호 r(t)</div><div style="position:relative;height:110px;"><canvas id="c-fm-rx"></canvas></div></div>
+    <div class="grid2">
+      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 리미터 출력 (진폭 제한)</div><div style="position:relative;height:110px;"><canvas id="c-fm-lim"></canvas></div><div class="note">리미터: 진폭을 ±1로 클리핑 → AM 잡음 제거. SNR이 임계값 이상이면 진폭 잡음이 사라진다.</div></div>
+      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 주파수 판별기 출력</div><div style="position:relative;height:110px;"><canvas id="c-fm-disc"></canvas></div><div class="note">순간 주파수 = d(위상)/dt. 수치 미분으로 구현. 판별기 출력 = kf·m(t) + 잡음.</div></div>
+    </div>
+    <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 복원 신호 m̂(t) vs 원본</div><div style="position:relative;height:120px;"><canvas id="c-fm-out"></canvas></div></div>
+    <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> FM 임계 효과 — SNR vs 출력 SNR</div><div style="position:relative;height:130px;"><canvas id="c-fm-threshold"></canvas></div><div class="note">임계값 이상: 출력 SNR ∝ β²·입력 SNR. 임계값 이하: 잡음 폭발 (포착 효과).</div></div>
+    <div class="metric-row">
+      <div class="metric"><div class="m-label">변조지수 β</div><div class="m-val" id="fm-m1">—</div></div>
+      <div class="metric"><div class="m-label">카슨 BW</div><div class="m-val" id="fm-m2">—</div></div>
+      <div class="metric"><div class="m-label">FM SNR 이득</div><div class="m-val" id="fm-m3">—</div></div>
+      <div class="metric"><div class="m-label">임계 SNR</div><div class="m-val" id="fm-m4">—</div></div>
+    </div>
+  </div>
+
+  <!-- COMPARE -->
+  <div id="mode-compare" style="display:none;">
+    <div class="panel"><div class="lbl">공통 파라미터</div>
+      <div class="grid2">
+        <div>
+          <div class="row"><label>메시지 fm</label><input type="range" min="1" max="8" value="3" step="1" id="cmp_fm" oninput="drawCompare()"><span class="val" id="cmp_fmv">3 Hz</span></div>
+          <div class="row"><label>FM 변조지수 β</label><input type="range" min="0.5" max="10" value="5" step="0.5" id="cmp_beta" oninput="drawCompare()"><span class="val" id="cmp_betav">5.0</span></div>
+        </div>
+        <div>
+          <div class="row"><label>AM 변조지수 μ</label><input type="range" min="0.1" max="1" value="0.8" step="0.05" id="cmp_mu" oninput="drawCompare()"><span class="val" id="cmp_muv">0.80</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel"><div class="lbl">SNR 성능 비교 — AM vs FM vs DSB-SC</div><div style="position:relative;height:280px;"><canvas id="c-cmp-snr"></canvas></div></div>
+    <div class="grid2">
+      <div class="panel"><div class="lbl">대역폭 비교</div><div style="position:relative;height:150px;"><canvas id="c-cmp-bw"></canvas></div><div class="note">FM은 SNR 성능이 뛰어나지만 대역폭을 더 사용. β↑이면 SNR↑, BW↑ — 트레이드오프.</div></div>
+      <div class="panel"><div class="lbl">SNR 이득 비교 (dB)</div><div style="position:relative;height:150px;"><canvas id="c-cmp-gain"></canvas></div><div class="note">FM 이득 = 3β²(β+1). β=5이면 ≈ 375 ≈ 25.7dB. AM 이득은 최대 μ²/(2+μ²).</div></div>
+    </div>
+    <div class="metric-row">
+      <div class="metric"><div class="m-label">AM SNR 이득</div><div class="m-val" id="cmp-m1">—</div></div>
+      <div class="metric"><div class="m-label">FM SNR 이득</div><div class="m-val" id="cmp-m2">—</div></div>
+      <div class="metric"><div class="m-label">FM 카슨 BW</div><div class="m-val" id="cmp-m3">—</div></div>
+      <div class="metric"><div class="m-label">FM 임계 SNR</div><div class="m-val" id="cmp-m4">—</div></div>
+    </div>
+  </div>
+</div>
+<script>
+const FS=500,Ts=1/FS;
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+const isDark=()=>window.matchMedia('(prefers-color-scheme:dark)').matches;
+const BC=()=>isDark()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';
+const SC=()=>isDark()?'#888':'#666';
+function getCtx(id,h){const el=document.getElementById(id);if(!el)return null;const dpr=window.devicePixelRatio||1;const W=el.parentElement.getBoundingClientRect().width||500;el.width=W*dpr;el.height=h*dpr;const ctx=el.getContext('2d');ctx.scale(dpr,dpr);return{ctx,W,H:h};}
+function axes(ctx,W,H){ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();}
+function drawL(ctx,sig,W,H,color,lw,sc){const s=sc||Math.max(...Array.from(sig).map(Math.abs),0.01);ctx.strokeStyle=color;ctx.lineWidth=lw||1.5;ctx.beginPath();Array.from(sig).forEach((v,i)=>{const x=i/sig.length*W,y=H/2-v/s*H*0.42;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
+function lpf(sig,fc,fs){const alpha=2*Math.PI*fc/fs/(1+2*Math.PI*fc/fs);const out=new Float32Array(sig.length);out[0]=sig[0];for(let i=1;i<sig.length;i++)out[i]=alpha*sig[i]+(1-alpha)*out[i-1];return out;}
+function fftMag(signal){const n=signal.length,re=[...signal],im=new Array(n).fill(0);let j=0;for(let i=1;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]];}}for(let len=2;len<=n;len<<=1){const ang=-2*Math.PI/len;for(let i=0;i<n;i+=len)for(let k=0;k<len/2;k++){const wr=Math.cos(ang*k),wi=Math.sin(ang*k),ur=re[i+k],ui=im[i+k],vr=re[i+k+len/2]*wr-im[i+k+len/2]*wi,vi=re[i+k+len/2]*wi+im[i+k+len/2]*wr;re[i+k]=ur+vr;im[i+k]=ui+vi;re[i+k+len/2]=ur-vr;im[i+k+len/2]=ui-vi;}}return re.map((r,i)=>Math.sqrt(r*r+im[i]*im[i])/n);}
+
+function runAM(){
+  const fm=+document.getElementById('am_fm').value,fc=+document.getElementById('am_fc').value;
+  const mu=+document.getElementById('am_mu').value,snrDB=+document.getElementById('am_snr').value;
+  const lpfCut=+document.getElementById('am_lpf').value,phi=+document.getElementById('am_phi').value*Math.PI/180;
+  const method=document.getElementById('am_method').value;
+  document.getElementById('am_fmv').textContent=fm+' Hz';document.getElementById('am_fcv').textContent=fc+' Hz';
+  document.getElementById('am_muv').textContent=mu.toFixed(2);document.getElementById('am_snrv').textContent=snrDB+' dB';
+  document.getElementById('am_lpfv').textContent=lpfCut+' Hz';document.getElementById('am_phiv').textContent=document.getElementById('am_phi').value+'°';
+  const N=1024,t=Array.from({length:N},(_,i)=>i*Ts);
+  const msg=t.map(ti=>Math.sin(2*Math.PI*fm*ti));
+  const tx=t.map((ti,i)=>(1+mu*msg[i])*Math.cos(2*Math.PI*fc*ti));
+  const snrLin=Math.pow(10,snrDB/10),sigPow=tx.reduce((s,v)=>s+v*v,0)/N,nPow=sigPow/snrLin;
+  const rx=new Float32Array(N);for(let i=0;i<N;i++)rx[i]=tx[i]+Math.sqrt(nPow)*randn();
+  let demod,envLPF;
+  if(method==='envelope'){
+    const rect=new Float32Array(N);for(let i=0;i<N;i++)rect[i]=Math.abs(rx[i]);
+    envLPF=lpf(rect,lpfCut,FS);
+    const dcLevel=envLPF.reduce((s,v)=>s+v,0)/N;demod=envLPF.map(v=>v-dcLevel);
+    const r3=getCtx('c-am-env',110);if(r3){const{ctx,W,H}=r3;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,rx,W,H,'rgba(186,117,23,0.3)',1);drawL(ctx,rect,W,H,'#BA7517',1.2);const re2=t.map((ti,i)=>1+mu*msg[i]);drawL(ctx,re2,W,H,'#378ADD',1.5,Math.max(...Array.from(re2).map(Math.abs)));ctx.font='10px sans-serif';ctx.fillStyle='#BA7517';ctx.fillText('|r(t)|',4,12);ctx.fillStyle='#378ADD';ctx.fillText('이상 포락선',4,24);}
+    const r4=getCtx('c-am-lpf',110);if(r4){const{ctx,W,H}=r4;ctx.clearRect(0,0,W,H);axes(ctx,W,H);const re2=t.map((ti,i)=>1+mu*msg[i]);const sc2=Math.max(...Array.from(re2).map(Math.abs));drawL(ctx,re2,W,H,'rgba(55,138,221,0.4)',1,sc2);drawL(ctx,envLPF,W,H,'#1D9E75',2,sc2);ctx.font='10px sans-serif';ctx.fillStyle='rgba(55,138,221,0.7)';ctx.fillText('이상 포락선',4,12);ctx.fillStyle='#1D9E75';ctx.fillText('LPF 출력 (fc='+lpfCut+'Hz)',4,24);}
+  } else {
+    const mixed=new Float32Array(N);for(let i=0;i<N;i++)mixed[i]=rx[i]*2*Math.cos(2*Math.PI*fc*t[i]+phi);
+    envLPF=lpf(mixed,lpfCut,FS);const dcLevel=envLPF.reduce((s,v)=>s+v,0)/N;demod=envLPF.map(v=>v-dcLevel);
+    const r3=getCtx('c-am-env',110);if(r3){const{ctx,W,H}=r3;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,mixed,W,H,'#534AB7',1.5);ctx.font='10px sans-serif';ctx.fillStyle='#534AB7';ctx.fillText('r(t)×2cos(2πfct)  (동기 복조)',4,12);}
+    const r4=getCtx('c-am-lpf',110);if(r4){const{ctx,W,H}=r4;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,envLPF,W,H,'#1D9E75',2);ctx.font='10px sans-serif';ctx.fillStyle='#1D9E75';ctx.fillText('LPF 출력',4,12);}
+  }
+  const r1=getCtx('c-am-tx',120);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,msg,W,H,'#378ADD',1.2,1/0.38);drawL(ctx,tx,W,H,'#534AB7',1.5,1/0.38);ctx.font='10px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('m(t)',4,12);ctx.fillStyle='#534AB7';ctx.fillText('s(t)',4,24);}
+  const r2=getCtx('c-am-rx',110);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,tx,W,H,'rgba(83,74,183,0.25)',1);drawL(ctx,rx,W,H,'#BA7517',1.5);ctx.font='10px sans-serif';ctx.fillStyle='#BA7517';ctx.fillText('r(t)=s(t)+n(t)',4,12);}
+  const r5=getCtx('c-am-out',120);if(r5){const{ctx,W,H}=r5;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,msg,W,H,'#378ADD',1.5,1/0.38);const sc2=Math.max(...Array.from(demod).map(Math.abs),0.01)/0.38;drawL(ctx,demod,W,H,'#1D9E75',1.5,sc2);ctx.font='10px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('원본 m(t)',4,12);ctx.fillStyle='#1D9E75';ctx.fillText('복원 m̂(t)',4,24);}
+  const r6=getCtx('c-am-spec',110);if(r6){const{ctx,W,H}=r6;ctx.clearRect(0,0,W,H);const mag=fftMag(Array.from(demod));const df=FS/N,maxF=30;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-18);ctx.lineTo(W,H-18);ctx.stroke();const maxMag=Math.max(...mag.slice(1,Math.floor(maxF/df)),0.01);for(let i=1;i<N/2;i++){const f=i*df;if(f>maxF)break;const x=(f/maxF)*(W-20)+10,bh=(mag[i]/maxMag)*(H-26);if(bh<0.3)continue;ctx.fillStyle=Math.abs(f-fm)<df*2?'#1D9E75':BC();ctx.fillRect(x-1.5,H-18-bh,3,bh);}ctx.font='10px sans-serif';ctx.fillStyle='#1D9E75';ctx.fillText(fm+'Hz',(fm/maxF)*(W-20)+4,H-4);}
+  const snrOut=mu*mu/(2+mu*mu)*snrLin;
+  document.getElementById('am-m1').textContent=snrDB+' dB';document.getElementById('am-m2').textContent=(10*Math.log10(snrOut)).toFixed(1)+' dB';document.getElementById('am-m3').textContent=(mu*mu/(2+mu*mu)*100).toFixed(1)+'%';document.getElementById('am-m4').innerHTML=mu<=1?`<span style="color:#1D9E75">정상 (μ=${mu.toFixed(2)})</span>`:`<span style="color:#D85A30">과변조!</span>`;
+}
+
+function runFM(){
+  const fm=+document.getElementById('fm_fm').value,fc=+document.getElementById('fm_fc').value;
+  const kf=+document.getElementById('fm_kf').value,snrDB=+document.getElementById('fm_snr').value;
+  const lpfCut=+document.getElementById('fm_lpf').value,gain=+document.getElementById('fm_gain').value;
+  document.getElementById('fm_fmv').textContent=fm+' Hz';document.getElementById('fm_fcv').textContent=fc+' Hz';
+  document.getElementById('fm_kfv').textContent=kf.toFixed(1);document.getElementById('fm_snrv').textContent=snrDB+' dB';
+  document.getElementById('fm_lpfv').textContent=lpfCut+' Hz';document.getElementById('fm_gainv').textContent=gain.toFixed(1);
+  const N=1024,t=Array.from({length:N},(_,i)=>i*Ts);
+  const msg=t.map(ti=>Math.sin(2*Math.PI*fm*ti));
+  const tx=t.map(ti=>Math.cos(2*Math.PI*fc*ti-(kf/(2*Math.PI*fm))*Math.cos(2*Math.PI*fm*ti)));
+  const snrLin=Math.pow(10,snrDB/10),nPow=0.5/snrLin;
+  const rx=new Float32Array(N);for(let i=0;i<N;i++)rx[i]=tx[i]+Math.sqrt(nPow)*randn();
+  const lim=new Float32Array(N);for(let i=0;i<N;i++)lim[i]=rx[i]/Math.max(Math.abs(rx[i]),0.1);
+  const disc=new Float32Array(N);for(let i=1;i<N;i++)disc[i]=(lim[i]-lim[i-1])/Ts*gain/100;disc[0]=disc[1];
+  const demod=lpf(disc,lpfCut,FS);const dcLevel=demod.reduce((s,v)=>s+v,0)/N;const demodDC=demod.map(v=>v-dcLevel);
+  const r1=getCtx('c-fm-tx',120);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,msg,W,H,'#378ADD',1.2,1/0.38);drawL(ctx,tx,W,H,'#534AB7',1.5);ctx.font='10px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('m(t)',4,12);ctx.fillStyle='#534AB7';ctx.fillText('FM s(t)',4,24);}
+  const r2=getCtx('c-fm-rx',110);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,tx,W,H,'rgba(83,74,183,0.25)',1);drawL(ctx,rx,W,H,'#BA7517',1.5);ctx.font='10px sans-serif';ctx.fillStyle='#BA7517';ctx.fillText('r(t)',4,12);}
+  const r3=getCtx('c-fm-lim',110);if(r3){const{ctx,W,H}=r3;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,rx,W,H,'rgba(186,117,23,0.3)',1);drawL(ctx,lim,W,H,'#534AB7',1.5);ctx.strokeStyle='#D85A30';ctx.lineWidth=0.8;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(0,H/2-H*0.42);ctx.lineTo(W,H/2-H*0.42);ctx.moveTo(0,H/2+H*0.42);ctx.lineTo(W,H/2+H*0.42);ctx.stroke();ctx.setLineDash([]);ctx.font='10px sans-serif';ctx.fillStyle='#534AB7';ctx.fillText('리미터 출력 (±1)',4,12);}
+  const r4=getCtx('c-fm-disc',110);if(r4){const{ctx,W,H}=r4;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,msg,W,H,'rgba(55,138,221,0.4)',1,1/0.38);const sc2=Math.max(...Array.from(disc).map(Math.abs),0.01)/0.38;drawL(ctx,disc,W,H,'#BA7517',1.5,sc2);ctx.font='10px sans-serif';ctx.fillStyle='rgba(55,138,221,0.7)';ctx.fillText('이상 kf·m(t)',4,12);ctx.fillStyle='#BA7517';ctx.fillText('판별기 출력',4,24);}
+  const r5=getCtx('c-fm-out',120);if(r5){const{ctx,W,H}=r5;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,msg,W,H,'#378ADD',1.5,1/0.38);const sc2=Math.max(...Array.from(demodDC).map(Math.abs),0.01)/0.38;drawL(ctx,demodDC,W,H,'#1D9E75',1.5,sc2);ctx.font='10px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('원본 m(t)',4,12);ctx.fillStyle='#1D9E75';ctx.fillText('복원 m̂(t)',4,24);}
+  const r6=getCtx('c-fm-threshold',130);if(r6){const{ctx,W,H}=r6;ctx.clearRect(0,0,W,H);const snrR=Array.from({length:31},(_,i)=>i),beta=kf/fm,bwT=2*(kf+fm),thr=10+10*Math.log10(bwT/(2*fm));ctx.strokeStyle=BC();ctx.lineWidth=0.3;[0,5,10,15,20,25,30].forEach(s=>{const x=(s/30)*(W-40)+20;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H-20);ctx.stroke();ctx.font='9px sans-serif';ctx.fillStyle=SC();ctx.fillText(s,x-5,H-5);});const fmDB=10*Math.log10(3*beta*beta*(beta+1));['#378ADD','#BA7517','#1D9E75'].forEach((c,ci)=>{ctx.strokeStyle=c;ctx.lineWidth=ci===2?2:1.5;ctx.setLineDash(ci===2?[]:[3,3]);ctx.beginPath();let f=true;snrR.forEach(s=>{let out;if(ci===0)out=s;else if(ci===1)out=s+10*Math.log10(0.8*0.8/(2+0.8*0.8));else{if(s>=thr*0.8)out=s+fmDB;else out=s-Math.pow((thr-s)/thr,2)*15;}const x=(s/30)*(W-40)+20,y=H-20-Math.max(0,Math.min(out,40))/40*(H-25);f?ctx.moveTo(x,y):ctx.lineTo(x,y);f=false;});ctx.stroke();ctx.setLineDash([]);});const cx=(snrDB/30)*(W-40)+20;ctx.strokeStyle='#D85A30';ctx.lineWidth=1;ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,H-20);ctx.stroke();ctx.setLineDash([]);ctx.font='9px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('DSB-SC',W-55,H-55);ctx.fillStyle='#BA7517';ctx.fillText('AM',W-30,H-42);ctx.fillStyle='#1D9E75';ctx.fillText('FM (β='+beta.toFixed(1)+')',W-65,20);ctx.fillStyle=SC();ctx.fillText('입력 SNR (dB)',W/2-20,H);}
+  const beta=kf/fm,bwCarson=2*(kf+fm);document.getElementById('fm-m1').textContent=beta.toFixed(2);document.getElementById('fm-m2').textContent=bwCarson.toFixed(1)+' Hz';document.getElementById('fm-m3').textContent=(10*Math.log10(3*beta*beta*(beta+1))).toFixed(1)+' dB';document.getElementById('fm-m4').textContent='≈ '+(10+10*Math.log10(bwCarson/(2*fm))).toFixed(1)+' dB';
+}
+
+function drawCompare(){
+  const fm=+document.getElementById('cmp_fm').value,beta=+document.getElementById('cmp_beta').value,mu=+document.getElementById('cmp_mu').value;
+  document.getElementById('cmp_fmv').textContent=fm+' Hz';document.getElementById('cmp_betav').textContent=beta.toFixed(1);document.getElementById('cmp_muv').textContent=mu.toFixed(2);
+  const bwFM=2*(beta*fm+fm),amGain=mu*mu/(2+mu*mu),fmGain=3*beta*beta*(beta+1),fmDB=10*Math.log10(fmGain),thr=10+10*Math.log10(bwFM/(2*fm));
+  const r1=getCtx('c-cmp-snr',280);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);const snrR=Array.from({length:31},(_,i)=>i),maxOut=60;ctx.strokeStyle=BC();ctx.lineWidth=0.3;[0,10,20,30].forEach(s=>{const x=(s/30)*(W-50)+30;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H-20);ctx.stroke();ctx.font='9px sans-serif';ctx.fillStyle=SC();ctx.fillText(s,x-5,H-5);});[0,10,20,30,40,50].forEach(s=>{const y=H-20-s/maxOut*(H-25);ctx.beginPath();ctx.moveTo(30,y);ctx.lineTo(W,y);ctx.stroke();ctx.font='9px sans-serif';ctx.fillStyle=SC();ctx.fillText(s,2,y+3);});['#378ADD','#BA7517','#1D9E75'].forEach((c,ci)=>{ctx.strokeStyle=c;ctx.lineWidth=ci===2?2.5:2;ctx.setLineDash(ci===2?[]:[]);ctx.beginPath();let f=true;snrR.forEach(s=>{let out;if(ci===0)out=s;else if(ci===1)out=s+10*Math.log10(amGain);else{if(s>=thr*0.8)out=s+fmDB;else out=s-Math.pow((thr-s)/thr,2)*20;}const x=(s/30)*(W-50)+30,y=H-20-Math.max(0,Math.min(out,maxOut))/maxOut*(H-25);f?ctx.moveTo(x,y):ctx.lineTo(x,y);f=false;});ctx.stroke();ctx.setLineDash([]);});ctx.font='10px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('DSB-SC',W-55,H-80);ctx.fillStyle='#BA7517';ctx.fillText('AM (μ='+mu.toFixed(2)+')',W-80,H-60);ctx.fillStyle='#1D9E75';ctx.fillText('FM (β='+beta.toFixed(1)+')',W-75,30);ctx.save();ctx.rotate(-Math.PI/2);ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText('출력 SNR (dB)',-H/2-20,14);ctx.restore();ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText('입력 SNR (dB)',W/2-20,H);}
+  const r2=getCtx('c-cmp-bw',150);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);const schemes=[{n:'AM',bw:2*fm,c:'#BA7517'},{n:'DSB-SC',bw:2*fm,c:'#378ADD'},{n:'FM (β='+beta.toFixed(1)+')',bw:bwFM,c:'#1D9E75'}];const maxBW=bwFM*1.2,bwBar=(W-40)/schemes.length,pad=12;schemes.forEach((s,i)=>{const x=40+i*bwBar+pad/2,bh=(s.bw/maxBW)*(H-40);ctx.fillStyle=s.c;ctx.fillRect(x,H-30-bh,bwBar-pad,bh);ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText(s.n,x+(bwBar-pad)/2-14,H-14);ctx.fillText(s.bw.toFixed(0)+'Hz',x+(bwBar-pad)/2-14,H-30-bh-4);});}
+  const r3=getCtx('c-cmp-gain',150);if(r3){const{ctx,W,H}=r3;ctx.clearRect(0,0,W,H);const schemes=[{n:'AM',gain:10*Math.log10(amGain),c:'#BA7517'},{n:'DSB-SC',gain:0,c:'#378ADD'},{n:'FM',gain:fmDB,c:'#1D9E75'}];const maxG=Math.max(fmDB,1)*1.2,bwBar=(W-40)/schemes.length,pad=12;ctx.strokeStyle=BC();ctx.lineWidth=0.5;const y0=H-30-(0/maxG)*(H-40);ctx.beginPath();ctx.moveTo(36,y0);ctx.lineTo(W,y0);ctx.stroke();schemes.forEach((s,i)=>{const x=40+i*bwBar+pad/2,g=Math.max(s.gain,0),bh=(g/maxG)*(H-40);ctx.fillStyle=s.c;ctx.fillRect(x,H-30-bh,bwBar-pad,bh);ctx.font='10px sans-serif';ctx.fillStyle=SC();ctx.fillText(s.n,x+(bwBar-pad)/2-10,H-14);ctx.fillText(s.gain.toFixed(1)+'dB',x+(bwBar-pad)/2-16,H-30-bh-4);});}
+  document.getElementById('cmp-m1').textContent=(10*Math.log10(amGain)).toFixed(1)+' dB';document.getElementById('cmp-m2').textContent=fmDB.toFixed(1)+' dB';document.getElementById('cmp-m3').textContent=bwFM.toFixed(1)+' Hz';document.getElementById('cmp-m4').textContent='≈ '+thr.toFixed(1)+' dB';
+}
+
+function setMode(m){['am','fm','compare'].forEach((x,i)=>{document.getElementById('mode-'+x).style.display=x===m?'':'none';document.querySelectorAll('.tab')[i].className='tab'+(x===m?' active':'');});if(m==='am')runAM();else if(m==='fm')runFM();else drawCompare();}
+runAM();
+</script>
+</body>
+</html>
