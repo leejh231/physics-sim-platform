@@ -2,7 +2,7 @@
 
 전자공학 전공 지식을 인터랙티브 시뮬레이터로 구현한 웹 기반 학습 플랫폼.
 
-**Live:**  (준비 중)
+**Live:** [jeonghyeonlee.com](https://jeonghyeonlee.com) (준비 중)
 
 ---
 
@@ -44,10 +44,10 @@ physics-sim-platform/
 ## GitHub Pages 배포
 
 ```bash
-git clone https://github.com/-------/physics-sim-platform
+git clone https://github.com/jeonghyeonlee/physics-sim-platform
 cd physics-sim-platform
 # GitHub repo Settings → Pages → Branch: main → / (root)
-# Custom domain: -------
+# Custom domain: jeonghyeonlee.com
 ```
 
 ---
