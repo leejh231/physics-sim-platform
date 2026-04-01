@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BPSK/QPSK 파이프라인 — physics-sim-platform</title>
+<title>BPSK/QPSK Pipeline — physics-sim-platform</title>
 <style>
   :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.12);--text:#1a1a1a;--text2:#666;--info-bg:#E6F1FB;--info:#185FA5;}
   @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.12);--text:#e8e8e8;--text2:#999;--info-bg:#0c2a40;--info:#5aabf0;}}
@@ -45,11 +45,11 @@
 <nav>
   <a href="../../index.html">physics-sim-platform</a><span class="sep">/</span>
   <a href="../index.html">signals</a><span class="sep">/</span>
-  <span class="cur">07 BPSK/QPSK 파이프라인</span>
+  <span class="cur">S07 BPSK/QPSK Pipeline</span>
 </nav>
 <div class="container">
-  <h1>BPSK / QPSK 전체 복조 파이프라인</h1>
-  <p class="subtitle">송신 → AWGN 채널 → 정합 필터 → 아이 다이어그램 → 심볼 판정 → BER</p>
+  <h1>BPSK / QPSK Full Demodulation Pipeline</h1>
+  <p class="subtitle">TX → AWGN Channel → Matched Filter → Eye Diagram → Symbol Decision → BER</p>
 
   <div class="tab-bar">
     <button class="tab active" onclick="setMode('bpsk')">BPSK</button>
@@ -76,7 +76,7 @@
     <div class="panel ptx"><div class="lbl"><span class="sl sl-tx">TX</span> 변조 신호 s(t) = ±cos(2πfct)</div><div style="position:relative;height:110px;"><canvas id="c-b-tx"></canvas></div></div>
     <div class="panel pch"><div class="lbl"><span class="sl sl-ch">CH</span> 수신 신호 r(t) = s(t) + n(t)</div><div style="position:relative;height:110px;"><canvas id="c-b-rx-sig"></canvas></div></div>
     <div class="grid2">
-      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 정합 필터 출력</div><div style="position:relative;height:120px;"><canvas id="c-b-mf"></canvas></div><div class="note">판정점(●): 초록=정상, 빨강=오류. 0 기준으로 판정.</div></div>
+      <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 정합 필터 출력</div><div style="position:relative;height:120px;"><canvas id="c-b-mf"></canvas></div><div class="note">판정점(●): 초록=OK, 빨강=Error. 0 기준으로 판정.</div></div>
       <div class="panel prx"><div class="lbl"><span class="sl sl-rx">RX</span> 아이 다이어그램</div><div style="position:relative;height:120px;"><canvas id="c-b-eye"></canvas></div><div class="note">눈이 열릴수록 판정 여유↑. SNR↓ 또는 위상오차↑이면 눈이 닫힌다.</div></div>
     </div>
     <div class="grid2">
@@ -87,7 +87,7 @@
       <div class="metric"><div class="m-label">Eb/N0</div><div class="m-val" id="b-m1">—</div></div>
       <div class="metric"><div class="m-label">이론 BER</div><div class="m-val" id="b-m2">—</div></div>
       <div class="metric"><div class="m-label">실측 BER</div><div class="m-val" id="b-m3">—</div></div>
-      <div class="metric"><div class="m-label">오류 비트</div><div class="m-val" id="b-m4">—</div></div>
+      <div class="metric"><div class="m-label">Error 비트</div><div class="m-val" id="b-m4">—</div></div>
     </div>
   </div>
 
@@ -127,7 +127,7 @@
       <div class="metric"><div class="m-label">Eb/N0</div><div class="m-val" id="q-m1">—</div></div>
       <div class="metric"><div class="m-label">이론 BER</div><div class="m-val" id="q-m2">—</div></div>
       <div class="metric"><div class="m-label">실측 BER</div><div class="m-val" id="q-m3">—</div></div>
-      <div class="metric"><div class="m-label">오류 비트</div><div class="m-val" id="q-m4">—</div></div>
+      <div class="metric"><div class="m-label">Error 비트</div><div class="m-val" id="q-m4">—</div></div>
     </div>
   </div>
 </div>
@@ -169,7 +169,7 @@ function runBPSK(){
   const COLS=['#1D9E75','#378ADD'];
   document.getElementById('b-tx-bits').innerHTML=bits.map(b=>`<span class="bit" style="background:${COLS[b]}">${b}</span>`).join('');
   document.getElementById('b-rx-bits').innerHTML=rxBits.map((b,i)=>`<span class="bit ${bits[i]!==b?'err-bit':'ok-bit'}">${b}</span>`).join('');
-  document.getElementById('b-err-info').innerHTML=`오류: <strong>${errors}/${NBITS}</strong> | 위상 잔류 오차: ${(+document.getElementById('b_phase').value-+document.getElementById('b_cest').value)}°`;
+  document.getElementById('b-err-info').innerHTML=`Error: <strong>${errors}/${NBITS}</strong> | 위상 잔류 오차: ${(+document.getElementById('b_phase').value-+document.getElementById('b_cest').value)}°`;
   const r1=getCtx('c-b-tx',110);if(r1){const{ctx,W,H}=r1;ctx.clearRect(0,0,W,H);axes(ctx,W,H);bits.forEach((_,i)=>{if(i>0){const x=i*spb/total*W;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();ctx.setLineDash([]);}});bits.forEach((b,i)=>{ctx.font='10px sans-serif';ctx.fillStyle=COLS[b];ctx.fillText(b,(i*spb+spb/2)/total*W-3,10);});drawL(ctx,txSig,W,H,'#378ADD',1.5);}
   const r2=getCtx('c-b-rx-sig',110);if(r2){const{ctx,W,H}=r2;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,txSig,W,H,'rgba(55,138,221,0.3)',1);drawL(ctx,rxPhased,W,H,'#BA7517',1.5);ctx.font='10px sans-serif';ctx.fillStyle='rgba(55,138,221,0.7)';ctx.fillText('s(t)',4,12);ctx.fillStyle='#BA7517';ctx.fillText('r(t)',4,24);}
   const r3=getCtx('c-b-mf',120);if(r3){const{ctx,W,H}=r3;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,mfSig,W,H,'#534AB7',1.5);bits.forEach((_,bi)=>{const i=(bi+1)*spb-1;const x=i/total*W,v=mfSig[i];const y=H/2-v/Math.max(...Array.from(mfSig).map(Math.abs),0.01)*H*0.42;ctx.fillStyle=rxBits[bi]===bits[bi]?'#1D9E75':'#D85A30';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();});}
@@ -204,7 +204,7 @@ function runQPSK(){
   const COLS=['#378ADD','#1D9E75','#534AB7','#BA7517','#D85A30','#993556'];
   document.getElementById('q-tx-bits').innerHTML=bits.map((b,i)=>`<span class="bit" style="background:${COLS[Math.floor(i/2)%COLS.length]}">${b}</span>`).join('');
   document.getElementById('q-rx-bits').innerHTML=rxBits.map((b,i)=>`<span class="bit ${bits[i]!==b?'err-bit':'ok-bit'}">${b}</span>`).join('');
-  document.getElementById('q-err-info').innerHTML=`오류: <strong>${errors}/${QBITS}</strong> | 위상 잔류 오차: ${(+document.getElementById('q_phase').value-+document.getElementById('q_cest').value)}°`;
+  document.getElementById('q-err-info').innerHTML=`Error: <strong>${errors}/${QBITS}</strong> | 위상 잔류 오차: ${(+document.getElementById('q_phase').value-+document.getElementById('q_cest').value)}°`;
   const ri=getCtx('c-q-tx-i',90);if(ri){const{ctx,W,H}=ri;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,txI,W,H,'#378ADD',1.5,1/0.42);}
   const rq=getCtx('c-q-tx-q',90);if(rq){const{ctx,W,H}=rq;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,txQ,W,H,'#1D9E75',1.5,1/0.42);}
   const rt=getCtx('c-q-tx',100);if(rt){const{ctx,W,H}=rt;ctx.clearRect(0,0,W,H);axes(ctx,W,H);for(let si=1;si<nSyms;si++){const x=si*sps/total*W;ctx.strokeStyle=BC();ctx.lineWidth=0.4;ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();ctx.setLineDash([]);}drawL(ctx,txSig,W,H,'#534AB7',1.5);}

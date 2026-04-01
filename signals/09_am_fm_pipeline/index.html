@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AM/FM 복조 파이프라인 — physics-sim-platform</title>
+<title>AM/FM Demodulation Pipeline — physics-sim-platform</title>
 <style>
   :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.12);--text:#1a1a1a;--text2:#666;}
   @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.12);--text:#e8e8e8;--text2:#999;}}
@@ -40,11 +40,11 @@
 <nav>
   <a href="../../index.html">physics-sim-platform</a><span class="sep">/</span>
   <a href="../index.html">signals</a><span class="sep">/</span>
-  <span class="cur">09 AM/FM 복조 파이프라인</span>
+  <span class="cur">S09 AM/FM Pipeline</span>
 </nav>
 <div class="container">
-  <h1>AM / FM 전체 복조 파이프라인</h1>
-  <p class="subtitle">포락선 검파 · 동기 복조 · 리미터-판별기 · FM 임계 효과 · SNR 비교</p>
+  <h1>AM / FM Full Demodulation Pipeline</h1>
+  <p class="subtitle">Envelope Detection · Coherent Demodulation · Limiter-Discriminator · FM Threshold Effect · SNR Comparison</p>
   <div class="tab-bar">
     <button class="tab active" onclick="setMode('am')">AM 복조</button>
     <button class="tab" onclick="setMode('fm')">FM 복조</button>
@@ -199,7 +199,7 @@ function runAM(){
   const r5=getCtx('c-am-out',120);if(r5){const{ctx,W,H}=r5;ctx.clearRect(0,0,W,H);axes(ctx,W,H);drawL(ctx,msg,W,H,'#378ADD',1.5,1/0.38);const sc2=Math.max(...Array.from(demod).map(Math.abs),0.01)/0.38;drawL(ctx,demod,W,H,'#1D9E75',1.5,sc2);ctx.font='10px sans-serif';ctx.fillStyle='#378ADD';ctx.fillText('원본 m(t)',4,12);ctx.fillStyle='#1D9E75';ctx.fillText('복원 m̂(t)',4,24);}
   const r6=getCtx('c-am-spec',110);if(r6){const{ctx,W,H}=r6;ctx.clearRect(0,0,W,H);const mag=fftMag(Array.from(demod));const df=FS/N,maxF=30;ctx.strokeStyle=BC();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,H-18);ctx.lineTo(W,H-18);ctx.stroke();const maxMag=Math.max(...mag.slice(1,Math.floor(maxF/df)),0.01);for(let i=1;i<N/2;i++){const f=i*df;if(f>maxF)break;const x=(f/maxF)*(W-20)+10,bh=(mag[i]/maxMag)*(H-26);if(bh<0.3)continue;ctx.fillStyle=Math.abs(f-fm)<df*2?'#1D9E75':BC();ctx.fillRect(x-1.5,H-18-bh,3,bh);}ctx.font='10px sans-serif';ctx.fillStyle='#1D9E75';ctx.fillText(fm+'Hz',(fm/maxF)*(W-20)+4,H-4);}
   const snrOut=mu*mu/(2+mu*mu)*snrLin;
-  document.getElementById('am-m1').textContent=snrDB+' dB';document.getElementById('am-m2').textContent=(10*Math.log10(snrOut)).toFixed(1)+' dB';document.getElementById('am-m3').textContent=(mu*mu/(2+mu*mu)*100).toFixed(1)+'%';document.getElementById('am-m4').innerHTML=mu<=1?`<span style="color:#1D9E75">정상 (μ=${mu.toFixed(2)})</span>`:`<span style="color:#D85A30">과변조!</span>`;
+  document.getElementById('am-m1').textContent=snrDB+' dB';document.getElementById('am-m2').textContent=(10*Math.log10(snrOut)).toFixed(1)+' dB';document.getElementById('am-m3').textContent=(mu*mu/(2+mu*mu)*100).toFixed(1)+'%';document.getElementById('am-m4').innerHTML=mu<=1?`<span style="color:#1D9E75">OK (μ=${mu.toFixed(2)})</span>`:`<span style="color:#D85A30">과변조!</span>`;
 }
 
 function runFM(){

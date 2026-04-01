@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AR 코팅 1D FDTD — physics-sim-platform</title>
+<title>AR Coating 1D FDTD — physics-sim-platform</title>
 <style>
   :root{--bg:#fff;--bg2:#f5f5f3;--bd:rgba(0,0,0,0.12);--tx:#1a1a1a;--tx2:#666;--ib:#E6F1FB;--ic:#185FA5;}
   @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--bd:rgba(255,255,255,0.12);--tx:#e8e8e8;--tx2:#999;--ib:#0c2a40;--ic:#5aabf0;}}
@@ -44,12 +44,12 @@
   <span class="cur">01 AR 코팅</span>
 </nav>
 <div class="container">
-  <h1>AR 코팅 — 1D FDTD 시뮬레이터</h1>
-  <p class="subtitle">1/4파장 반사 방지 코팅 · Yee 알고리즘 · PML 경계 · Fresnel 반사율 분석</p>
+  <h1>AR Coating — 1D FDTD Simulator</h1>
+  <p class="subtitle">Quarter-wave anti-reflection coating · Yee algorithm · PML boundaries · Fresnel reflectance analysis</p>
 
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-    <button class="thbtn" id="thBtn" onclick="toggleTh()">이론 보기</button>
-    <span style="font-size:12px;color:var(--tx2);margin-left:4px;">AR_Coating.py → JavaScript 포팅</span>
+    <button class="thbtn" id="thBtn" onclick="toggleTh()">Theory</button>
+    <span style="font-size:12px;color:var(--tx2);margin-left:4px;">AR_Coating.py → JavaScript port</span>
   </div>
   <div id="thPanel" class="th">
     <div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:500;color:var(--tx2);text-transform:uppercase;margin-bottom:6px;">AR 코팅 조건</div>
@@ -75,10 +75,10 @@
       <div class="row"><label>AR 두께 배율</label><input type="range" min="0.25" max="2.0" value="1.0" step="0.05" id="dsc" oninput="up()"><span class="val" id="dscv">×1.00</span></div>
     </div>
     <div class="p"><div class="lbl">시뮬레이션</div>
-      <div class="row"><label>시간 스텝</label><input type="range" min="500" max="3000" value="1500" step="100" id="ns" oninput="up()"><span class="val" id="nsv">1500</span></div>
-      <button class="rbtn" id="runBtn" onclick="toggleRun()" style="margin-top:8px;">▶ 시뮬레이션 실행</button>
+      <div class="row"><label>시간 Step</label><input type="range" min="500" max="3000" value="1500" step="100" id="ns" oninput="up()"><span class="val" id="nsv">1500</span></div>
+      <button class="rbtn" id="runBtn" onclick="toggleRun()" style="margin-top:8px;">▶ Run Simulation</button>
       <div class="pb"><div class="pf" id="pf"></div></div>
-      <div id="st" style="font-size:12px;color:var(--tx2);margin-top:4px;">준비</div>
+      <div id="st" style="font-size:12px;color:var(--tx2);margin-top:4px;">Ready</div>
     </div>
   </div>
 
@@ -129,7 +129,7 @@ const BC=()=>isDk()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';
 const SC=()=>isDk()?'#888':'#666';
 function getCtx(id,h){const el=document.getElementById(id);if(!el)return null;const dpr=window.devicePixelRatio||1;const W=el.parentElement.getBoundingClientRect().width||500;el.width=W*dpr;el.height=h*dpr;const ctx=el.getContext('2d');ctx.scale(dpr,dpr);return{ctx,W,H:h};}
 
-function toggleTh(){thOpen=!thOpen;document.getElementById('thPanel').className='th'+(thOpen?' show':'');const b=document.getElementById('thBtn');b.textContent=thOpen?'이론 닫기':'이론 보기';b.className='thbtn'+(thOpen?' open':'');}
+function toggleTh(){thOpen=!thOpen;document.getElementById('thPanel').className='th'+(thOpen?' show':'');const b=document.getElementById('thBtn');b.textContent=thOpen?'Hide Theory':'Theory';b.className='thbtn'+(thOpen?' open':'');}
 
 function up(){
   p.n1=+document.getElementById('n1').value;p.n2=+document.getElementById('n2').value;p.n3=+document.getElementById('n3').value;
@@ -211,12 +211,12 @@ function buildDom(){
 }
 
 function toggleRun(){
-  if(running){running=false;if(raf){cancelAnimationFrame(raf);raf=null;}document.getElementById('runBtn').textContent='▶ 다시 실행';document.getElementById('runBtn').className='rbtn';return;}
+  if(running){running=false;if(raf){cancelAnimationFrame(raf);raf=null;}document.getElementById('runBtn').textContent='▶ Run Again';document.getElementById('runBtn').className='rbtn';return;}
   startSim();
 }
 
 function startSim(){
-  running=true;document.getElementById('runBtn').textContent='■ 중지';document.getElementById('runBtn').className='rbtn run';
+  running=true;document.getElementById('runBtn').textContent='■ Stop';document.getElementById('runBtn').className='rbtn run';
   const dom=buildDom();const{zdim,ar_s,ar_e,si_s,si_e,z_src,A1,B1,A2,B2}=dom;
   const Ex=new Float64Array(zdim),Hy=new Float64Array(zdim);
   const omega=2*Math.PI*c0/p.wl,ns=p.ns;
@@ -232,14 +232,14 @@ function startSim(){
     }
     drawFields(Ex,Hy,dom,iter,ns);
     document.getElementById('pf').style.width=(iter/ns*100)+'%';
-    document.getElementById('st').textContent='스텝 '+iter+'/'+ns;
+    document.getElementById('st').textContent='Step '+iter+'/'+ns;
     raf=requestAnimationFrame(step);
   }
   function finish(){
-    running=false;document.getElementById('runBtn').textContent='▶ 다시 실행';document.getElementById('runBtn').className='rbtn';
-    document.getElementById('pf').style.width='100%';document.getElementById('st').textContent='완료';
+    running=false;document.getElementById('runBtn').textContent='▶ Run Again';document.getElementById('runBtn').className='rbtn';
+    document.getElementById('pf').style.width='100%';document.getElementById('st').textContent='Done';
     const R=pow_i>0?Math.min(pow_r/pow_i,1):0,T=pow_i>0?Math.min(pow_t/pow_i,1):0;
-    document.getElementById('fr').textContent=(R*100).toFixed(1)+'%';document.getElementById('ft').textContent=(T*100).toFixed(1)+'%';document.getElementById('prog').textContent='완료 ('+ns+'스텝)';
+    document.getElementById('fr').textContent=(R*100).toFixed(1)+'%';document.getElementById('ft').textContent=(T*100).toFixed(1)+'%';document.getElementById('prog').textContent='Done ('+ns+'Step)';
   }
   raf=requestAnimationFrame(step);
 }
@@ -262,7 +262,7 @@ function drawFields(Ex,Hy,dom,iter,ns){
   }
   drawF('cex',Ex,160,'#534AB7');
   const pow=Array.from(Ex).map((e,i)=>e*Hy[i]);drawF('cpow',pow,130,'#D85A30');
-  document.getElementById('step-info').textContent='스텝: '+iter+'/'+ns+' | '+Math.round(iter/ns*100)+'%';
+  document.getElementById('step-info').textContent='Step: '+iter+'/'+ns+' | '+Math.round(iter/ns*100)+'%';
 }
 
 up();

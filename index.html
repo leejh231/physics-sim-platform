@@ -1,79 +1,94 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Physics Simulation Platform — JeonghyeonLee</title>
 <style>
-  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.1);--text:#1a1a1a;--text2:#666;--blue:#378ADD;--purple:#534AB7;--green:#1D9E75;--amber:#BA7517;}
+  :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.1);--text:#1a1a1a;--text2:#666;}
   @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.1);--text:#e8e8e8;--text2:#999;}}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
   header{padding:60px 24px 40px;max-width:900px;margin:0 auto;}
   .badge-top{display:inline-block;font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);color:var(--text2);margin-bottom:16px;}
   h1{font-size:32px;font-weight:500;margin-bottom:12px;line-height:1.2;}
-  .tagline{font-size:16px;color:var(--text2);line-height:1.6;max-width:560px;margin-bottom:48px;}
+  .tagline{font-size:16px;color:var(--text2);line-height:1.6;max-width:600px;margin-bottom:16px;}
+  .maxwell{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:40px;max-width:700px;}
+  .maxwell-title{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
+  .maxwell-eq{font-family:monospace;font-size:13px;color:var(--text);line-height:2;display:grid;grid-template-columns:auto 1fr;gap:0 16px;}
+  .maxwell-eq .law{font-size:10px;color:var(--text2);align-self:center;}
   .grid{max-width:900px;margin:0 auto;padding:0 24px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;}
   .card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;text-decoration:none;color:var(--text);transition:transform 0.15s,border-color 0.15s;}
   .card:hover{transform:translateY(-2px);border-color:rgba(0,0,0,0.2);}
-  @media(prefers-color-scheme:dark){.card:hover{border-color:rgba(255,255,255,0.2);}}
   .card.disabled{opacity:0.5;pointer-events:none;}
-  .icon{font-size:28px;margin-bottom:14px;}
+  .icon{font-size:22px;margin-bottom:14px;}
   .card h2{font-size:18px;font-weight:500;margin-bottom:8px;}
   .card p{font-size:13px;color:var(--text2);line-height:1.6;}
   .topics{display:flex;flex-wrap:wrap;gap:4px;margin-top:14px;}
   .topic{font-size:11px;padding:2px 8px;border-radius:4px;background:var(--bg);border:1px solid var(--border);color:var(--text2);}
   .count{font-size:12px;color:var(--text2);margin-top:12px;}
   footer{border-top:1px solid var(--border);padding:24px;text-align:center;font-size:13px;color:var(--text2);}
-  .ab{border-top:3px solid var(--blue);}
-  .ap{border-top:3px solid var(--purple);}
-  .ag{border-top:3px solid var(--green);}
-  .badge-new{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;margin-left:6px;vertical-align:middle;background:#EAF3DE;color:#3B6D11;}
-  @media(prefers-color-scheme:dark){.badge-new{background:#1a2e1a;color:#6dbc6d;}}
+  footer a{color:inherit;}
+  .ab{border-top:3px solid #378ADD;}.ag{border-top:3px solid #534AB7;}.ar{border-top:3px solid #1D9E75;}
 </style>
 </head>
 <body>
 <header>
   <div class="badge-top">Physics Simulation Platform</div>
   <h1>Interactive Physics &<br>Engineering Simulations</h1>
-  <p class="tagline">전자공학 전공 지식을 인터랙티브 시뮬레이터로 — 신호처리, 전자기학, 광학, 로봇 제어</p>
+  <p class="tagline">Core EE concepts as interactive web simulators — Signals, Electromagnetics, Optics, and Robotics. All numerical algorithms implemented from scratch.</p>
+
+  <!-- Maxwell's Equations teaser -->
+  <div class="maxwell">
+    <div class="maxwell-title">Foundation — Maxwell's Equations (differential form)</div>
+    <div class="maxwell-eq">
+      <span>∇·D = ρ</span><span class="law">Gauss's Law (electric)</span>
+      <span>∇·B = 0</span><span class="law">Gauss's Law (magnetic)</span>
+      <span>∇×E = −∂B/∂t</span><span class="law">Faraday's Law</span>
+      <span>∇×H = J + ∂D/∂t</span><span class="law">Ampere-Maxwell Law</span>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-top:10px;line-height:1.6;">
+      These four equations govern all classical electromagnetic phenomena. The wave equation ∇²E = μ₀ε₀∂²E/∂t² follows directly — giving c = 1/√(μ₀ε₀) ≈ 3×10⁸ m/s. The FDTD simulators in this platform solve the curl equations numerically on a Yee grid.
+    </div>
+  </div>
 </header>
+
 <div class="grid">
   <a class="card ab" href="signals/index.html">
     <div class="icon">〜</div>
     <h2>Signals & Systems</h2>
-    <p>신호처리 · 변복조 이론을 실시간으로 시각화. 전체 송수신 파이프라인 포함.</p>
+    <p>Signal processing, modulation theory, and full demodulation pipelines with matched filters, eye diagrams, and BER analysis.</p>
     <div class="topics">
-      <span class="topic">푸리에 변환</span><span class="topic">AM/FM 복조</span>
-      <span class="topic">BPSK/QPSK</span><span class="topic">QAM</span><span class="topic">BER</span>
+      <span class="topic">Fourier (3D)</span><span class="topic">AM/FM</span><span class="topic">BPSK/QPSK</span>
+      <span class="topic">QAM</span><span class="topic">Sampling</span><span class="topic">Probability</span>
     </div>
-    <div class="count">9 시뮬레이터</div>
+    <div class="count">9 simulators</div>
   </a>
 
-  <a class="card ap" href="em_optics/index.html">
-    <div class="icon">⚡</div>
-    <h2>EM & Optics<span class="badge-new">신규</span></h2>
-    <p>전자기학 · 파동광학 · FDTD 시뮬레이션. Yee 알고리즘 직접 구현.</p>
+  <a class="card ag" href="em_optics/index.html">
+    <div class="icon">〰</div>
+    <h2>EM & Optics</h2>
+    <p>Electromagnetic wave simulation using the Yee FDTD algorithm. AR coating reflectance and Young's double-slit interference.</p>
     <div class="topics">
-      <span class="topic">AR 코팅</span><span class="topic">1D FDTD</span>
-      <span class="topic">PML</span><span class="topic">반사율 스펙트럼</span>
+      <span class="topic">AR Coating</span><span class="topic">Double Slit</span>
+      <span class="topic">Yee Algorithm</span><span class="topic">PML</span>
     </div>
-    <div class="count">1 완성 · 3 준비 중</div>
+    <div class="count">2 simulators · 2 planned</div>
   </a>
 
-  <a class="card ag disabled">
+  <a class="card disabled">
     <div class="icon">⚙</div>
     <h2>Robotics & Control</h2>
-    <p>역운동학 · PID 제어 · 궤적 계획. 4-DOF 로봇 팔 시뮬레이터.</p>
+    <p>Inverse kinematics, PID control, trajectory planning for robotic manipulators.</p>
     <div class="topics">
-      <span class="topic">IK/FK</span><span class="topic">PID</span>
-      <span class="topic">DH 파라미터</span><span class="topic">3D 시각화</span>
+      <span class="topic">IK/FK</span><span class="topic">PID</span><span class="topic">FABRIK</span><span class="topic">DH Params</span>
     </div>
-    <div class="count">준비 중</div>
+    <div class="count">Coming soon</div>
   </a>
 </div>
+
 <footer>
   physics-sim-platform · JeonghyeonLee ·
-  <a href="https://github.com/leejh231/physics-sim-platform" style="color:inherit;">GitHub</a>
+  <a href="https://github.com/leejh231/physics-sim-platform">GitHub</a>
 </footer>
 </body>
 </html>

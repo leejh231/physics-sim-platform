@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EM & Optics — physics-sim-platform</title>
@@ -13,7 +13,12 @@
   .sep{color:var(--border);}.cur{color:var(--text);font-weight:500;}
   .container{max-width:900px;margin:0 auto;padding:40px 16px;}
   h1{font-size:26px;font-weight:500;margin-bottom:8px;}
-  .desc{font-size:15px;color:var(--text2);margin-bottom:40px;line-height:1.6;}
+  .desc{font-size:15px;color:var(--text2);margin-bottom:24px;line-height:1.6;}
+  .maxwell-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:32px;}
+  .maxwell-box .title{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;}
+  .eq-grid{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:4px 16px;font-family:monospace;font-size:13px;line-height:1.9;}
+  .eq-label{font-size:10px;color:var(--text2);align-self:center;}
+  .wave-eq{font-family:monospace;font-size:13px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);line-height:1.9;}
   .section-title{font-size:13px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px;margin-top:32px;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
   .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;text-decoration:none;color:var(--text);transition:border-color 0.15s,transform 0.15s;}
@@ -25,7 +30,7 @@
   .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:12px;}
   .tag{font-size:11px;padding:2px 7px;border-radius:4px;background:var(--bg);border:1px solid var(--border);color:var(--text2);}
   .badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;margin-left:6px;vertical-align:middle;background:#EAF3DE;color:#3B6D11;}
-  @media(prefers-color-scheme:dark){.badge{background:#1a2e1a;color:#6dbc6d;}}
+  @media(prefers-color-scheme:dark){.badge{background:#1a2e1a;color:#6dbc6d;};}
   .ap{border-top:3px solid #534AB7;}
 </style>
 </head>
@@ -34,38 +39,52 @@
   <a href="../index.html">physics-sim-platform</a><span class="sep">/</span><span class="cur">em_optics</span>
 </nav>
 <div class="container">
-  <h1>Electromagnetics & Optics</h1>
-  <p class="desc">전자기학 · 파동광학 · FDTD 시뮬레이션 — Yee 알고리즘 기반 인터랙티브 시뮬레이터</p>
+  <h1>EM & Optics</h1>
+  <p class="desc">Electromagnetics · Wave optics · FDTD simulation — solving Maxwell's equations numerically on a Yee grid</p>
 
-  <div class="section-title">1D FDTD — 박막 광학</div>
-  <div class="grid">
-    <a class="card ap" href="01_ar_coating/index.html">
-      <div class="card-num">01</div>
-      <div class="card-title">AR 코팅<span class="badge">완성</span></div>
-      <div class="card-desc">1/4파장 반사 방지 코팅. Yee 알고리즘, PML, 반사율 스펙트럼, 파라미터 스윕.</div>
-      <div class="tags"><span class="tag">1D FDTD</span><span class="tag">PML</span><span class="tag">TMM</span><span class="tag">반사율</span></div>
-    </a>
-    <a class="card ap disabled">
-      <div class="card-num">02</div>
-      <div class="card-title">슬랩 도파로</div>
-      <div class="card-desc">TE/TM 모드, 차단 주파수, 유효 굴절률.</div>
-      <div class="tags"><span class="tag">준비 중</span></div>
-    </a>
+  <!-- Maxwell's equations full -->
+  <div class="maxwell-box">
+    <div class="title">Maxwell's Equations — the foundation</div>
+    <div class="eq-grid">
+      <span>∇·D = ρ_free</span><span class="eq-label">Gauss's Law (electric) — enclosed free charge</span>
+      <span>∇·B = 0</span><span class="eq-label">Gauss's Law (magnetic) — no magnetic monopoles</span>
+      <span>∇×E = −∂B/∂t</span><span class="eq-label">Faraday's Law — changing B induces circulating E</span>
+      <span>∇×H = J + ∂D/∂t</span><span class="eq-label">Ampere-Maxwell — currents + changing E induce H</span>
+    </div>
+    <div class="wave-eq">
+      <div><strong>Wave equation (free space, from Maxwell's curl equations):</strong></div>
+      <div>∇²E = μ₀ε₀ ∂²E/∂t² &nbsp;&nbsp;→&nbsp;&nbsp; c = 1/√(μ₀ε₀) ≈ 2.998×10⁸ m/s</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.6;">
+        Derivation: Apply ∇× to Faraday's Law → ∇×(∇×E) = −∂/∂t(∇×B). Use ∇×B = μ₀∂E/∂t and the vector identity ∇×(∇×E) = ∇(∇·E) − ∇²E. In free space ∇·E=0, giving ∇²E = μ₀ε₀∂²E/∂t². The FDTD simulators below discretize the curl equations directly on a staggered Yee grid.
+      </div>
+    </div>
   </div>
 
-  <div class="section-title">2D FDTD — 파동 광학</div>
+  <div class="section-title">Wave Optics & FDTD Simulations</div>
   <div class="grid">
-    <a class="card ap disabled">
-      <div class="card-num">03</div>
-      <div class="card-title">이중 슬릿 (Young's)</div>
-      <div class="card-desc">2D FDTD, PEC 장벽, 회절·간섭 패턴, 시간 평균 강도.</div>
-      <div class="tags"><span class="tag">준비 중</span></div>
+    <a class="card ap" href="01_ar_coating/index.html">
+      <div class="card-num">E01</div>
+      <div class="card-title">AR Coating<span class="badge">1D FDTD</span></div>
+      <div class="card-desc">Quarter-wave anti-reflection coating. Adjust n_AR, n_substrate, wavelength → real-time reflectance/transmittance</div>
+      <div class="tags"><span class="tag">Yee Algorithm</span><span class="tag">PML</span><span class="tag">Fresnel</span><span class="tag">Poynting</span></div>
     </a>
-    <a class="card ap disabled">
-      <div class="card-num">04</div>
-      <div class="card-title">그레이팅 커플러</div>
-      <div class="card-desc">SOI 도파로, 각도 소스, 결합 효율 최적화 (duty cycle × depth).</div>
-      <div class="tags"><span class="tag">준비 중</span></div>
+    <a class="card ap" href="02_double_slit/index.html">
+      <div class="card-num">E02</div>
+      <div class="card-title">Young's Double Slit<span class="badge">2D FDTD</span></div>
+      <div class="card-desc">Double-slit interference experiment. Adjust slit width, separation, wavelength → real-time 2D field + interference pattern</div>
+      <div class="tags"><span class="tag">2D FDTD</span><span class="tag">PEC</span><span class="tag">Interference</span><span class="tag">Diffraction</span></div>
+    </a>
+    <a class="card disabled">
+      <div class="card-num">E03</div>
+      <div class="card-title">Grating Coupler</div>
+      <div class="card-desc">SOI platform grating coupler. Diffraction efficiency and coupling optimization</div>
+      <div class="tags"><span class="tag">Coming soon</span></div>
+    </a>
+    <a class="card disabled">
+      <div class="card-num">E04</div>
+      <div class="card-title">Waveguide Modes</div>
+      <div class="card-desc">Slab waveguide mode analysis. TE/TM modes, cutoff conditions</div>
+      <div class="tags"><span class="tag">Coming soon</span></div>
     </a>
   </div>
 </div>

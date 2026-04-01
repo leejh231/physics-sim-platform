@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>확률 & 통계 — physics-sim-platform</title>
+<title>Probability <title>확률 & 통계 — physics-sim-platform</title> Statistics — physics-sim-platform</title>
 <style>
   :root{--bg:#fff;--bg2:#f5f5f3;--border:rgba(0,0,0,0.12);--text:#1a1a1a;--text2:#666;--info-bg:#E6F1FB;--info:#185FA5;}
   @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--border:rgba(255,255,255,0.12);--text:#e8e8e8;--text2:#999;--info-bg:#0c2a40;--info:#5aabf0;}}
@@ -42,17 +42,17 @@
 <nav>
   <a href="../../index.html">physics-sim-platform</a><span class="sep">/</span>
   <a href="../index.html">signals</a><span class="sep">/</span>
-  <span class="cur">06 확률 & 통계</span>
+  <span class="cur">S06 Probability <span class="cur">06 확률 & 통계</span> Statistics</span>
 </nav>
 <div class="container">
-  <h1>확률 & 통계</h1>
-  <p class="subtitle">가우시안 분포 · 랜덤 변수 · 중심극한정리 · 결합 분포</p>
+  <h1>Probability <h1>확률 & 통계</h1> Statistics</h1>
+  <p class="subtitle">Gaussian Distribution · Random Variables · Central Limit Theorem · Joint Distribution</p>
   <div class="tab-bar">
     <button class="tab active" onclick="setMode('gaussian')">가우시안</button>
     <button class="tab" onclick="setMode('rv')">랜덤 변수</button>
     <button class="tab" onclick="setMode('clt')">중심극한정리</button>
     <button class="tab" onclick="setMode('joint')">결합 분포</button>
-    <button class="theory-btn" id="theoryBtn" onclick="toggleTheory()">이론 보기</button>
+    <button class="theory-btn" id="theoryBtn" onclick="toggleTheory()">Theory</button>
   </div>
   <div id="theoryPanel" class="theory-box"></div>
 
@@ -163,7 +163,7 @@ const theories={
   ]}
 };
 function buildHTML(m){const th=theories[m];let h=`<h3>${th.title}</h3>`;th.sections.forEach(s=>{h+=`<div class="ts"><div class="ts-lbl">${s.label}</div>`;if(s.eqs)s.eqs.forEach(e=>{h+=`<div class="eq">${e}</div>`;});if(s.text)h+=`<div class="tt">${s.text}</div>`;if(s.code)h+=`<div class="code-ref">${s.code.replace(/\n/g,'<br>')}</div>`;h+=`</div>`;});return h;}
-function toggleTheory(){theoryOpen=!theoryOpen;const p=document.getElementById('theoryPanel'),b=document.getElementById('theoryBtn');p.innerHTML=buildHTML(curMode);p.className='theory-box'+(theoryOpen?' show':'');b.textContent=theoryOpen?'이론 닫기':'이론 보기';b.className='theory-btn'+(theoryOpen?' open':'');}
+function toggleTheory(){theoryOpen=!theoryOpen;const p=document.getElementById('theoryPanel'),b=document.getElementById('theoryBtn');p.innerHTML=buildHTML(curMode);p.className='theory-box'+(theoryOpen?' show':'');b.textContent=theoryOpen?'Hide':'Theory';b.className='theory-btn'+(theoryOpen?' open':'');}
 
 function drawGaussian(){
   const mu=+document.getElementById('g_mu').value,sigma=+document.getElementById('g_sigma').value;

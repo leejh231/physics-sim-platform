@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>이중 슬릿 2D FDTD — physics-sim-platform</title>
+<title>Young's Double Slit 2D FDTD — physics-sim-platform</title>
 <style>
   :root{--bg:#fff;--bg2:#f5f5f3;--bd:rgba(0,0,0,0.12);--tx:#1a1a1a;--tx2:#666;--ib:#E6F1FB;--ic:#185FA5;}
   @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--bd:rgba(255,255,255,0.12);--tx:#e8e8e8;--tx2:#999;--ib:#0c2a40;--ic:#5aabf0;}}
@@ -47,12 +47,12 @@
   <span class="cur">02 이중 슬릿</span>
 </nav>
 <div class="container">
-  <h1>Young's Double Slit — 2D FDTD</h1>
+  <h1>Young's Double Slit — 2D FDTD Simulator</h1>
   <p class="subtitle">이중 슬릿 간섭 실험 · 2D FDTD · PEC 장벽 · 간섭 패턴 시각화</p>
 
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-    <button class="thbtn" id="thBtn" onclick="toggleTh()">이론 보기</button>
-    <span style="font-size:12px;color:var(--tx2);margin-left:4px;">Double_Slit_FDTD.py → JavaScript 포팅</span>
+    <button class="thbtn" id="thBtn" onclick="toggleTh()">Theory</button>
+    <span style="font-size:12px;color:var(--tx2);margin-left:4px;">Double_Slit_FDTD.py → JavaScript port</span>
   </div>
   <div id="thPanel" class="th">
     <div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:500;color:var(--tx2);text-transform:uppercase;margin-bottom:6px;">Young의 이중 슬릿 간섭 이론</div>
@@ -78,10 +78,10 @@
       <div class="row"><label>격자 간격 (nm)</label><input type="range" min="20" max="100" value="50" step="10" id="dsp" oninput="up()"><span class="val" id="dspv">50 nm</span></div>
     </div>
     <div class="p"><div class="lbl">시뮬레이션</div>
-      <div class="row"><label>스텝 수</label><input type="range" min="200" max="1000" value="500" step="100" id="ns" oninput="up()"><span class="val" id="nsv">500</span></div>
-      <button class="rbtn" id="runBtn" onclick="toggleRun()" style="margin-top:8px;">▶ 시뮬레이션 실행</button>
+      <div class="row"><label>Step 수</label><input type="range" min="200" max="1000" value="500" step="100" id="ns" oninput="up()"><span class="val" id="nsv">500</span></div>
+      <button class="rbtn" id="runBtn" onclick="toggleRun()" style="margin-top:8px;">▶ Run Simulation</button>
       <div class="pb"><div class="pf" id="pf"></div></div>
-      <div id="st" style="font-size:12px;color:var(--tx2);margin-top:4px;">준비</div>
+      <div id="st" style="font-size:12px;color:var(--tx2);margin-top:4px;">Ready</div>
     </div>
   </div>
 
@@ -111,7 +111,7 @@
   <div id="tab-avg"><div class="p">
     <div class="lbl">시간 평균 강도 |E|² — z 방향 (x=중앙)</div>
     <div style="position:relative;height:150px;"><canvas id="cavg"></canvas></div>
-    <div class="note">마지막 200스텝 평균. 밝은 무늬(constructive)와 어두운 무늬(destructive)의 주기가 이론값 Δy=λL/d와 일치하는지 확인하세요.</div>
+    <div class="note">마지막 200Step 평균. 밝은 무늬(constructive)와 어두운 무늬(destructive)의 주기가 이론값 Δy=λL/d와 일치하는지 확인하세요.</div>
   </div></div>
 
   <div id="tab-snap" style="display:none;"><div class="p">
@@ -146,7 +146,7 @@ const BC=()=>isDk()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.12)';
 const SC=()=>isDk()?'#888':'#666';
 function getCtx(id,h){const el=document.getElementById(id);if(!el)return null;const dpr=window.devicePixelRatio||1;const W=el.parentElement.getBoundingClientRect().width||500;el.width=W*dpr;el.height=h*dpr;const ctx=el.getContext('2d');ctx.scale(dpr,dpr);return{ctx,W,H:h};}
 
-function toggleTh(){thOpen=!thOpen;document.getElementById('thPanel').className='th'+(thOpen?' show':'');const b=document.getElementById('thBtn');b.textContent=thOpen?'이론 닫기':'이론 보기';b.className='thbtn'+(thOpen?' open':'');}
+function toggleTh(){thOpen=!thOpen;document.getElementById('thPanel').className='th'+(thOpen?' show':'');const b=document.getElementById('thBtn');b.textContent=thOpen?'Hide Theory':'Theory';b.className='thbtn'+(thOpen?' open':'');}
 function setTab(t){curTab=t;['avg','snap','cmp'].forEach((x,i)=>{document.getElementById('tab-'+x).style.display=x===t?'':'none';document.querySelectorAll('.tab')[i].className='tab'+(x===t?' active':'');});if(lastEy&&lastAvg&&simCfg)drawResult(lastEy,lastAvg,simCfg);}
 
 function up(){
@@ -189,10 +189,10 @@ function buildSim(){
   return{Hx,Hz,Ey,A1x,B1x,A1z,B1z,A2,B2,omega,dt,z_src:20,s1l,s1h,s2l,s2h,barrier_z:p.sz};
 }
 
-function toggleRun(){if(running){running=false;if(raf){cancelAnimationFrame(raf);raf=null;}document.getElementById('runBtn').textContent='▶ 다시 실행';document.getElementById('runBtn').className='rbtn';return;}startSim();}
+function toggleRun(){if(running){running=false;if(raf){cancelAnimationFrame(raf);raf=null;}document.getElementById('runBtn').textContent='▶ Run Again';document.getElementById('runBtn').className='rbtn';return;}startSim();}
 
 function startSim(){
-  running=true;document.getElementById('runBtn').textContent='■ 중지';document.getElementById('runBtn').className='rbtn run';
+  running=true;document.getElementById('runBtn').textContent='■ Stop';document.getElementById('runBtn').className='rbtn run';
   const sim=buildSim();simCfg=sim;
   const{Hx,Hz,Ey,A1x,B1x,A1z,B1z,A2,B2,omega,dt,z_src}=sim;
   const ns=p.ns,avgStart=Math.max(0,ns-200),avgEy2=new Float32Array(ZDIM*XDIM);
@@ -208,10 +208,10 @@ function startSim(){
     }
     lastEy=Ey;lastAvg=avgEy2;
     draw2D(Ey,sim,iter);drawResult(Ey,avgEy2,sim);
-    document.getElementById('pf').style.width=(iter/ns*100)+'%';document.getElementById('st').textContent='스텝 '+iter+'/'+ns;
+    document.getElementById('pf').style.width=(iter/ns*100)+'%';document.getElementById('st').textContent='Step '+iter+'/'+ns;
     raf=requestAnimationFrame(step);
   }
-  function finish(){running=false;document.getElementById('runBtn').textContent='▶ 다시 실행';document.getElementById('runBtn').className='rbtn';document.getElementById('pf').style.width='100%';document.getElementById('st').textContent='완료';measureFringe(avgEy2,sim);}
+  function finish(){running=false;document.getElementById('runBtn').textContent='▶ Run Again';document.getElementById('runBtn').className='rbtn';document.getElementById('pf').style.width='100%';document.getElementById('st').textContent='Done';measureFringe(avgEy2,sim);}
   raf=requestAnimationFrame(step);
 }
 
